@@ -1,0 +1,4 @@
+Num_Ticket,Date,Heure,Titre,Description,Status,Priority,Items
+1,03/06/2026,13:45,Tsy mandeha,hafahafa be,New,Medium,"[""PC-001""]"
+2,04/06/2026,10:45,Michauffe,mamay be,In Progress,Medium,"[""PC-001"",""LAP-002""]"
+3,04/06/2026,15:45,Michauffe,mamay be,Closed,High,"[""VID-001""]"

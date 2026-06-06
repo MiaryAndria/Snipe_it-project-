@@ -1,0 +1,10 @@
+asset_tag,serial,name,category,manufacturer,model,status,company,user,email,department,purchase_date,purchase_cost
+PC-001,DLX240001,Poste Direction,Desktop,Dell,OptiPlex 7090,Deployed,ITUniversity,Jean Rakoto,jean.rakoto@ituniversity.mg,Direction,15/01/2025,1200
+PC-002,DLX240002,Poste Scolarité,Desktop,Dell,OptiPlex 7090,Deployed,ITUniversity,Marie Rasoanaivo,marie.rasoanaivo@ituniversity.mg,Scolarité,15/01/2025,1200
+PC-003,HPX240003,Poste Comptabilié,Desktop,HP,ProDesk 600 G6,Deployed,ITUniversity,Andry Randrianarisoa,andry.randrianarisoa@ituniversity.mg,Scolarité,10/02/2025,1150
+PC-004,LNV240004,Poste Bibliothèque,Desktop,Lenovo,ThinkCentre M70,Deployed,ITUniversity,Sarah Rakotomalala,sarah.rakotomalala@ituniversity.mg,Bibliothèque,20/02/2025,1100
+LAP-001,DLT240006,Portable Relations Entreprises,Laptop,Dell,Latitude 5420,Deployed,ITCollege,Fanja Andrianina,fanja.andrianina@ituniversity.mg,Bibliothèque,15/03/2025,1400
+LAP-002,LNV240007,Poste Scolarité,Laptop,Lenovo,ThinkPad T14,Deployed,ITCollege,Tahina Rakoto,tahina.rakoto@ituniversity.mg,Service Informatique,01/04/2025,1450
+TAB-001,SAM240008,Portable Relations Entreprises,Tablet,Samsung,Galaxy Tab S9,Deployed,ITCollege,Nantenaina Raveloson,nantenaina.raveloson@ituniversity.mg,Scolarité,10/04/2025,850
+VID-001,EPS240009,Poste Bibliothèque,Projector,Epson,EB-X06,Ready To Deploy,ITCollege,,,,05/05/2025,650
+PHN-001,IPH240010,Poste Scolarité,Smartphone,Apple,iPhone 14,Pending,ITCollege,,,,20/05/2025,950

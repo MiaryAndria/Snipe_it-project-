@@ -1,0 +1,109 @@
+import { useState } from 'react'
+import ImportService from '../../service/Import'
+
+function ImportData() {
+    const [fileAssets, setFileAssets] = useState(null)
+    const [fileTickets, setFileTickets] = useState(null)
+    const [statusAssets, setStatusAssets] = useState('')
+    const [statusTickets, setStatusTickets] = useState('')
+    const [loadingAssets, setLoadingAssets] = useState(false)
+    const [loadingTickets, setLoadingTickets] = useState(false)
+    const [progressAssets, setProgressAssets] = useState('')
+    const [progressTickets, setProgressTickets] = useState('')
+
+    const handleFileAssetsChange = (e) => {
+        setFileAssets(e.target.files[0])
+    }
+
+    const handleFileTicketsChange = (e) => {
+        setFileTickets(e.target.files[0])
+    }
+
+    const importAssets = async () => {
+        if (!fileAssets) {
+            setStatusAssets('Veuillez sélectionner un fichier CSV pour les Assets.')
+            return
+        }
+
+        setLoadingAssets(true)
+        setStatusAssets('Lecture du fichier...')
+        setProgressAssets('')
+
+        const reader = new FileReader()
+        reader.onload = async (e) => {
+            const text = e.target.result
+            try {
+                setStatusAssets('Importation en cours...')
+                const result = await ImportService.importFromCSV(text, (done, total) => {
+                    setProgressAssets(`${done} / ${total}`)
+                })
+                setStatusAssets(`Terminé : ${result.success} succès, ${result.errors} erreur(s).`)
+            } catch (err) {
+                console.error(err)
+                setStatusAssets(`Erreur : ${err.message}`)
+            } finally {
+                setLoadingAssets(false)
+            }
+        }
+        reader.readAsText(fileAssets)
+    }
+
+    const importTickets = async () => {
+        if (!fileTickets) {
+            setStatusTickets('Veuillez sélectionner un fichier CSV pour les Tickets.')
+            return
+        }
+
+        setLoadingTickets(true)
+        setStatusTickets('Lecture du fichier...')
+        setProgressTickets('')
+
+        const reader = new FileReader()
+        reader.onload = async (e) => {
+            const text = e.target.result
+            try {
+                setStatusTickets('Importation en cours...')
+                const result = await ImportService.importTicketsFromCSV(text, (done, total) => {
+                    setProgressTickets(`${done} / ${total}`)
+                })
+                setStatusTickets(`Terminé : ${result.message} (${result.success} succès, ${result.errors} erreur(s), ${result.skipped} ignoré(s)).`)
+            } catch (err) {
+                console.error(err)
+                setStatusTickets(`Erreur : ${err.message}`)
+            } finally {
+                setLoadingTickets(false)
+            }
+        }
+        reader.readAsText(fileTickets)
+    }
+
+    return (
+        <div>
+            <h1>Import de données</h1>
+
+            <div>
+                <h2>Import Assets (Feuille 1)</h2>
+                <input type="file" accept=".csv" onChange={handleFileAssetsChange} disabled={loadingAssets} />
+                <button onClick={importAssets} disabled={loadingAssets || !fileAssets}>
+                    Importer Assets
+                </button>
+                <p>Status: {statusAssets}</p>
+                {progressAssets && <p>Progression: {progressAssets}</p>}
+            </div>
+
+            <hr />
+
+            <div>
+                <h2>Import Tickets (Feuille 2)</h2>
+                <input type="file" accept=".csv" onChange={handleFileTicketsChange} disabled={loadingTickets} />
+                <button onClick={importTickets} disabled={loadingTickets || !fileTickets}>
+                    Importer Tickets
+                </button>
+                <p>Status: {statusTickets}</p>
+                {progressTickets && <p>Progression: {progressTickets}</p>}
+            </div>
+        </div>
+    )
+}
+
+export default ImportData
