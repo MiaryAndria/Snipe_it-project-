@@ -42,11 +42,14 @@ function InsertTickets() {
         try {
             const response = await api_service.get(`/hardware/${selectedItems}`)
             const itemDetail = response.data
-            setComponent({
+            const result = []
+            const contentOfComponent = {
                 id       : itemDetail.id,
                 asset_tag: itemDetail.asset_tag,
                 name     : itemDetail.name
-            })
+            }
+            result.push(contentOfComponent)
+            setComponent(result)
         } catch (e) {
             console.log(e)
             setMessage('Erreur lors recuperation')
@@ -62,7 +65,7 @@ function InsertTickets() {
                 titre: title,
                 description: descri,
                 priority: selectedPriority,
-                items: [component]
+                items: component
             })
         } catch (e) {
             console.log(e)

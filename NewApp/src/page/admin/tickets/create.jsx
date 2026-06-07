@@ -44,11 +44,11 @@ function InsertTickets() {
                 if (!id) return
                 const response = await api_service.get(`/hardware/${id}`)
                 const itemDetail = response.data
-                const contentOfComponent = ({
+                const contentOfComponent = {
                     id: itemDetail.id,
                     asset_tag: itemDetail.asset_tag,
                     name: itemDetail.name
-                })
+                }
                 // const contentOfComponent = itemDetail.asset_tag
                 result.push(contentOfComponent)
             }

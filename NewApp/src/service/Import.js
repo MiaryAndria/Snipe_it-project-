@@ -600,7 +600,7 @@ class ImportService {
                     continue
                 }
 
-                const dateRaw = this.getVal(row, 'Date', 'date', 'date_ticket', 'date creation')
+                const dateRaw = this.formatDate(this.getVal(row, 'Date', 'date', 'date_ticket', 'date creation')) || ''
                 const heureRaw = this.getVal(row, 'Heure', 'heure', 'time', 'hour', 'temps')
                 const description = this.getVal(row, 'Description', 'description', 'desc', 'detail', 'details', 'contenu') || titre
                 const status = this.normalizeTicketStatus(this.getVal(row, 'Status', 'status', 'statut', 'etat', 'état'))
