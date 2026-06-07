@@ -16,7 +16,7 @@ function ListeActif() {
     const getActif = async (categorie, status, compagnie , recherche) => {
     try {
         const params = {}
-        if (recherche) params.search = labelFilter
+        if (recherche) params.search = recherche
         if (categorie)  params.category_id = categorie
         if (status)     params.status_id   = status
         if (compagnie)  params.company_id  = compagnie

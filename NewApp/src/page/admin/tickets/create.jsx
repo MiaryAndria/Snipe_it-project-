@@ -49,6 +49,7 @@ function InsertTickets() {
                     asset_tag: itemDetail.asset_tag,
                     name: itemDetail.name
                 })
+                // const contentOfComponent = itemDetail.asset_tag
                 result.push(contentOfComponent)
             }
             setComponent(result)
@@ -74,11 +75,11 @@ function InsertTickets() {
     const createTicket = async () => {
         setLoading(true)
         try {
-            const response = await api_node.post('/tickets', {
+            await api_node.post('/tickets', {
                 num_ticket: Date.now() % 100000,
                 titre: title,
                 description: descri,
-                priority: selectedPriority,
+                priority_id: selectedPriority,
                 items: component
             })
         } catch (e) {
@@ -114,8 +115,8 @@ function InsertTickets() {
                 onChange={(e) => setSelectedPriority(e.target.value)}>
                 <option value="">-- Choisir --</option>
                 {priorities.map(p => (
-                    <option key={p} value={p}>
-                        {p}
+                    <option key={p.id} value={p.id}>
+                        {p.name}
                     </option>
                 ))}
             </select>
