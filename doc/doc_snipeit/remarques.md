@@ -207,6 +207,37 @@ const handleOnChange =(e)=>{
 # pour verifier si une valeur existe dans un tableau 
     selectedItems.includes(e.target.value)
 
-## pas de return dans fonction alors on creer une variable à l'interieur fonction et set à l'exterieur du boucle ensuite et dans set on fait ceci set(fonction) peux causer asynchrone si pas ça apres on peut aussi faire return et appeller dans une autre fonction return 
+## pas de return dans fonction alors on creer une variable à l'interieur fonction et set à l'exterieur du boucle ensuite et dans set on fait ceci set(fonction) , peux causer asynchrone si pas ça apres on peut aussi faire return et appeller dans une autre fonction return 
+sort veut dire trier par colonne 
+accompagné de order desc asc
 
-test api apres 
+
+## passer information d'une page à une autre update page update prerempli mettre dans state l'objet qu'on veut que la page recupère 
+const navigate = useNavigate()
+
+// Au moment du clic Edit
+const handleEdit = (ticket) => {
+    navigate('/edit-ticket', {
+        state: {
+            ticket: ticket  // ← passer tout l'objet ticket
+        }
+    })
+}
+
+// Dans le JSX
+<button onClick={() => handleEdit(ticketData)}>Editer</button>
+
+# extraction des informations dans la page edit 
+
+function EditTicket() {
+    const location = useLocation()
+    const ticket = location.state?.ticket  // ← récupérer les données
+
+    const [title, setTitre] = useState(ticket?.titre || '')
+    const [descri, setDescription] = useState(ticket?.description || '')
+    const [selectedPriority, setSelectedPriority] = useState(ticket?.priority_id || '')
+    
+    // ← pré-cocher les items déjà dans le ticket
+    const [idsSelectionnes, setIdsSelectionnes] = useState(
+        ticket?.items?.map(i => i.id) || []  // ← extraire les ids des items
+    ) }

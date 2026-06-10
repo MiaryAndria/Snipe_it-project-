@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react"
+import { useNavigate } from "react-router-dom"
 import api_service from "../../../api/api_service"
 
 function ListeActif() {
@@ -12,6 +13,8 @@ function ListeActif() {
     const [labelFilter , setLabelFilter] = useState('')
     const [status, setStatus] = useState([])
     const [categorie, setCategorie] = useState([])
+
+    const navigate = useNavigate()
 
     const getActif = async (categorie, status, compagnie , recherche) => {
     try {
@@ -134,6 +137,7 @@ function ListeActif() {
                 </tbody>
             </table>
             <p>Valeur total : {total}</p>
+            <button onClick={() => navigate('/liste/tickets')}>Voir liste tickets</button>
         </div>
     )
 }

@@ -1,0 +1,198 @@
+import api_ticket from '../../../api/api_ticket';
+import api_service from '../../../api/api_service';
+import { useNavigate } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+
+function InsertTickets() {
+    const [loading, setLoading] = useState(true)
+    const [message, setMessage] = useState('')
+    const [lignes, setLignes] = useState([{ id: Date.now() }])
+    const [priority, setPriority] = useState([])
+    const [assetResult, setAssetResult] = useState([])
+    const [asset,setAsset] = useState([])
+    const [selectedItem, setSelectedItem] = useState({})
+    const [label, setLabel] = useState('')
+    const [description, setDescription] = useState('')
+    const [component, setComponent] = useState([])
+    const [selectedPriority, setSelectedPriority] = useState([])
+    const getPriority = async () => {
+        try {
+            const response = await api_ticket.get('/priorities')
+            setPriority(response.data.data)
+        } catch (e) {
+            console.log(e)
+            setMessage('Erreur lors recuperation')
+
+        }
+    }
+
+    const getAsset = async () => {
+        try {
+            const response = await api_service.get('/hardware')
+            setAsset(response.data.rows)
+        } catch (e) {
+            console.log(e)
+            setMessage('Erreurs lors recuperation')
+        }
+    }
+
+    const ajouterLigne = () => {
+        setLignes([...lignes, { id: Date.now() }]);
+    };
+
+    const supprimerLigne = (id) => {
+        setLignes(lignes.filter(l => l.id !== id));
+    };
+
+    const handleSubmit = () => {
+        const result = Object.values(selectedItem).filter(Boolean)
+        return result
+    }
+
+    const getAssetDetail = async (resultSubmit) => {
+        try {
+            setLoading(true)
+            const result = []
+            for (const r of resultSubmit) {
+                const id = r
+                const response = await api_service.get(`hardware/${id}`)
+                const itemData = response.data
+                const contentOfComponent = {
+                    id: itemData.id,
+                    asset_tag: itemData.asset_tag,
+                    name: itemData.name
+                }
+                result.push(contentOfComponent)
+            }
+            return result
+        } catch (e) {
+            console.log(e)
+            setMessage('Erreur lors recuperation')
+
+        }finally{
+            setLoading(false)
+        }
+    }
+
+    useEffect(()=>{
+        const result = Object.values(selectedItem).filter(Boolean)
+        if(result.length > 0) {
+            getAssetDetail(result)
+        }else{
+            setComponent([])
+        }
+    },[selectedItem])
+
+    const getAssetDetail = async (result) => {
+        try {
+            setLoading(true)
+            const result = []
+            for (const r of result) {
+                const id = r
+                const response = await api_service.get(`hardware/${id}`)
+                const itemData = response.data
+                const contentOfComponent = {
+                    id: itemData.id,
+                    asset_tag: itemData.asset_tag,
+                    name: itemData.name
+                }
+                result.push(contentOfComponent)
+            }
+            setComponent(result)
+        } catch (e) {
+            console.log(e)
+            setMessage('Erreur lors recuperation')
+
+        }finally{
+            setLoading(false)
+        }
+    }
+
+
+    const createTicket = async () => {
+        try {
+            const response = await api_ticket.post('/tickets', {
+                num_ticket: Date.now() % 100000,
+                titre: label,
+                description: description,
+                priority_id: selectedPriority,
+                items: component
+            })
+            setMessage('Ticket créé avec succès !')
+        } catch (e) {
+            setMessage(`Erreur : ${e.response?.data?.error || e.message}`)
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    const createTicket = async () => {
+        const submit = handleSubmit()
+        const component = await getAssetDetail(submit)
+        try {
+            const response = await api_ticket.post('/tickets', {
+                num_ticket: Date.now() % 100000,
+                titre: label,
+                description: description,
+                priority_id: selectedPriority,
+                items: component
+            })
+            setMessage('Ticket créé avec succès !')
+        } catch (e) {
+            setMessage(`Erreur : ${e.response?.data?.error || e.message}`)
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    useEffect(()=>{
+        getAsset()
+        getPriority()
+    },[])
+
+    
+
+    return (
+        <div>
+            <input type='text' onChange={(e)=>setLabel(e.target.value)} placeholder='Entrer titre' />
+            <input type='text' onChange={(e)=>setDescription(e.target.value)} placeholder='Entrer description' />
+            <select
+                value={selectedPriority ?? ""}
+                onChange={(e) => setSelectedPriority(e.target.value ? parseInt(e.target.value) : null)}
+            >
+                <option value="">-- Choisir priorité --</option>
+                {priority.map(p => (
+                    <option key={p.id} value={p.id}>
+                        {p.name}
+                    </option>
+                ))}
+            </select>
+                <div>
+                    {lignes.map(ligne => (
+                        <div key={ligne.id}>
+                        <select
+                            value={selectedItem[ligne.id] ?? ""}
+                            onChange={(e) =>
+                                setSelectedItem(prev => ({
+                                    ...prev,
+                                    [ligne.id]: e.target.value ? parseInt(e.target.value) : null
+                                }))
+                            }
+                        >
+                                <option value="">-- Choisir item --</option>
+                                {asset.map(a => (
+                                    <option key={a.id} value={a.id}>
+                                        {a.name}
+                                    </option>
+                                ))}
+                            </select>
+                            <button type="button" onClick={() => supprimerLigne(ligne.id)}> X </button>
+                        </div>
+                    ))}
+                    <button onClick={ajouterLigne}> + </button>
+                </div>
+                <button onClick={createTicket}>Creer un ticket</button>
+        </div>
+    )
+}
+export default InsertTickets

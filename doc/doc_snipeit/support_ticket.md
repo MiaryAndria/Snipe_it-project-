@@ -130,12 +130,23 @@ Ces routes segment restent disponibles pour compatibilité et usage direct :
 
 ### 3.2. Statuts (`/statuses`)
 
+La table `ticket_statuses` ne gère plus que le nom technique. La gestion des couleurs et des traductions se fait via les routes `/kanban_settings`.
+
 | Route | Description |
 |-------|-------------|
-| `GET /statuses` | Liste tous les statuts → `[{ "id": 1, "name": "New" }, ...]` |
+| `GET /statuses` | Liste tous les statuts (avec couleur et traduction incluses via jointure) |
 | `POST /statuses` | Crée un statut → body: `{ "name": "En Attente" }` |
-| `PUT /statuses/:id` | Renomme un statut → body: `{ "name": "Bloqué" }` |
-| `DELETE /statuses/:id` | Supprime un statut |
+| `PUT /statuses/:id` | Modifie le nom technique d'un statut → body: `{ "name": "Bloqué" }` |
+| `DELETE /statuses/:id` | Supprime un statut (et ses paramètres Kanban associés en cascade) |
+
+### 3.3. Paramètres Kanban (`/kanban_settings`)
+
+| Route | Description |
+|-------|-------------|
+| `GET /kanban_settings` | Liste tous les paramètres Kanban (couleurs et traductions par statut) |
+| `GET /kanban_settings/:status_id` | Récupère les paramètres Kanban d'un statut spécifique |
+| `POST /kanban_settings` | Crée ou met à jour les paramètres d'un statut existant → body: `{ "status_id": 1, "couleur_id": 2, "label_traduction": "Miandry" }` |
+| `PUT /kanban_settings/:status_id` | Modifie les paramètres d'un statut existant → body: `{ "couleur_id": 3, "label_traduction": "En cours" }` |
 
 ---
 
@@ -500,7 +511,7 @@ const getStatuses = async () => {
     try {
         const response = await api_node.get('/statuses')
         setStatuses(response.data.data)
-        // response.data.data = [{ id: 1, name: 'New' }, { id: 2, name: 'In Progress' }, ...]
+        // response.data.data = [{ id: 1, name: 'New', label_traduction: 'Vaovao', couleur_id: 2, ... }, ...]
     } catch (e) {
         setMessage(`Erreur : ${e.response?.data?.error || e.message}`)
     } finally {
@@ -518,9 +529,10 @@ const createStatus = async () => {
     setLoading(true)
     try {
         const response = await api_node.post('/statuses', {
-            name: newStatusName  // ex: 'En Attente'
+            name: newStatusName // ex: 'En Attente'
         })
         setMessage(`Statut "${response.data.data.name}" créé (ID: ${response.data.data.id})`)
+        // Pour lui assigner une couleur et une traduction, appeler ensuite /kanban_settings
         await getStatuses()
     } catch (e) {
         setMessage(`Erreur : ${e.response?.data?.error || e.message}`)
@@ -539,9 +551,10 @@ const updateStatus = async (statusId) => {
     setLoading(true)
     try {
         const response = await api_node.put(`/statuses/${statusId}`, {
-            name: updatedStatusName  // ex: 'Bloqué'
+            name: updatedStatusName // ex: 'Bloqué'
         })
         setMessage(`Statut #${statusId} renommé en "${response.data.data.name}"`)
+        // Pour modifier sa couleur ou traduction, appeler /kanban_settings
         await getStatuses()
     } catch (e) {
         if (e.response?.status === 404) {
@@ -580,19 +593,213 @@ const deleteStatus = async (statusId) => {
 
 ---
 
-## 7 . Structure tableau
-{
-    num_ticket:  101,
-    date:        '2026-06-07',  // YYYY-MM-DD (normalisé par ImportService)
-    heure:       '09:30',
-    titre:       'Écran HS',
-    description: "L'écran du bureau 12 ne s'allume plus",
-    status:      'New',         // string → converti en status_id par le serveur
-    priority:    'High',        // string → converti en priority_id par le serveur
-    items:       '["PC-001"]'   // JSON string (enrichi avec MySQL côté serveur)
-}
+### 5.18.1. `GET /kanban_settings` — Lister tous les paramètres Kanban
 
 ```javascript
+const getKanbanSettings = async () => {
+    setLoading(true)
+    try {
+        const response = await api_node.get('/kanban_settings')
+        setKanbanSettings(response.data.data)
+    } catch (e) {
+        setMessage(`Erreur : ${e.response?.data?.error || e.message}`)
+    } finally {
+        setLoading(false)
+    }
+}
+
+// Alternative (alias souvent utilisé) :
+const getAllKanbanSetting = async () => {
+    setLoading(true)
+    try {
+        const response = await api_node.get('/kanban_settings')
+        setKanbanSettings(response.data.data)
+    } catch (e) {
+        setMessage(`Erreur : ${e.response?.data?.error || e.message}`)
+    } finally {
+        setLoading(false)
+    }
+}
+```
+
+---
+
+### 5.18.2. `GET /kanban_settings/:status_id` — Récupérer les paramètres Kanban d'un statut
+
+```javascript
+const getKanbanSettingByStatus = async (statusId) => {
+    setLoading(true)
+    try {
+        const response = await api_node.get(`/kanban_settings/${statusId}`)
+        setKanbanSetting(response.data.data)
+    } catch (e) {
+        if (e.response?.status === 404) {
+            setMessage('Paramètres introuvables')
+        } else {
+            setMessage(`Erreur : ${e.response?.data?.error || e.message}`)
+        }
+    } finally {
+        setLoading(false)
+    }
+}
+```
+
+---
+
+### 5.19. `POST /kanban_settings` — Modifier/Créer les paramètres Kanban d'un statut
+
+```javascript
+const saveKanbanSettings = async (statusId, colorId, traduction) => {
+    setLoading(true)
+    try {
+        await api_node.post('/kanban_settings', {
+            status_id: statusId,
+            couleur_id: colorId,
+            label_traduction: traduction
+        })
+        setMessage('Paramètres Kanban enregistrés')
+        await getStatuses() // Rafraîchir la liste pour voir les changements
+    } catch (e) {
+        setMessage(`Erreur : ${e.response?.data?.error || e.message}`)
+    } finally {
+        setLoading(false)
+    }
+}
+```
+
+---
+
+### 5.20. `PUT /kanban_settings/:status_id` — Modifier les paramètres Kanban d'un statut
+
+```javascript
+const updateKanbanSettings = async (statusId, colorId, traduction) => {
+    setLoading(true)
+    try {
+        await api_node.put(`/kanban_settings/${statusId}`, {
+            couleur_id: colorId,
+            label_traduction: traduction
+        })
+        setMessage('Paramètres Kanban mis à jour')
+        await getStatuses() // Rafraîchir la liste pour voir les changements
+    } catch (e) {
+        setMessage(`Erreur : ${e.response?.data?.error || e.message}`)
+    } finally {
+        setLoading(false)
+    }
+}
+```
+
+---
+
+### 5.21. `GET /couleurs` — Lister toutes les couleurs
+
+```javascript
+const getCouleurs = async () => {
+    setLoading(true)
+    try {
+        const response = await api_node.get('/couleurs')
+        setCouleurs(response.data.data)
+        // response.data.data = [{ id: 1, name: 'Rouge', hex_code: '#FF4C4C' }, ...]
+    } catch (e) {
+        setMessage(`Erreur : ${e.response?.data?.error || e.message}`)
+    } finally {
+        setLoading(false)
+    }
+}
+```
+
+---
+
+### 5.22. `POST /couleurs` — Créer une couleur
+
+```javascript
+const createCouleur = async () => {
+    setLoading(true)
+    try {
+        const response = await api_node.post('/couleurs', {
+            name: newColorName,      // ex: 'Cyan'
+            hex_code: newColorHex    // ex: '#00FFFF'
+        })
+        setMessage(`Couleur "${response.data.data.name}" créée (ID: ${response.data.data.id})`)
+        await getCouleurs()
+    } catch (e) {
+        setMessage(`Erreur : ${e.response?.data?.error || e.message}`)
+    } finally {
+        setLoading(false)
+    }
+}
+```
+
+---
+
+### 5.23. `PUT /couleurs/:id` — Modifier une couleur
+
+```javascript
+const updateCouleur = async (couleurId) => {
+    setLoading(true)
+    try {
+        const response = await api_node.put(`/couleurs/${couleurId}`, {
+            name: updatedColorName,    // ex: 'Cyan Sombre'
+            hex_code: updatedColorHex  // ex: '#008B8B'
+        })
+        setMessage(`Couleur #${couleurId} modifiée en "${response.data.data.name}"`)
+        await getCouleurs()
+    } catch (e) {
+        if (e.response?.status === 404) {
+            setMessage('Couleur introuvable')
+        } else {
+            setMessage(`Erreur : ${e.response?.data?.error || e.message}`)
+        }
+    } finally {
+        setLoading(false)
+    }
+}
+```
+
+---
+
+### 5.24. `DELETE /couleurs/:id` — Supprimer une couleur
+
+```javascript
+const deleteCouleur = async (couleurId) => {
+    setLoading(true)
+    try {
+        await api_node.delete(`/couleurs/${couleurId}`)
+        setMessage(`Couleur #${couleurId} supprimée`)
+        setCouleurs(prev => prev.filter(c => c.id !== couleurId))
+    } catch (e) {
+        if (e.response?.status === 404) {
+            setMessage('Couleur introuvable')
+        } else {
+            setMessage(`Erreur : ${e.response?.data?.error || e.message}`)
+        }
+    } finally {
+        setLoading(false)
+    }
+}
+```
+
+---
+
+### 5.25. `POST /import/tickets` — Import CSV en masse
+
+```javascript
+const importTickets = async (ticketsArray) => {
+    setLoading(true)
+    try {
+        const response = await api_node.post('/import/tickets', {
+            tickets: ticketsArray
+        })
+        setMessage(`${response.data.count} ticket(s) importé(s) avec succès !`)
+    } catch (e) {
+        setMessage(`Erreur : ${e.response?.data?.error || e.message}`)
+    } finally {
+        setLoading(false)
+    }
+}
+```
+
+---
 
 ## 6. Résumé de toutes les routes
 
@@ -615,5 +822,45 @@ const deleteStatus = async (statusId) => {
 | `POST` | `/statuses` | 5.16 | Créer un statut |
 | `PUT` | `/statuses/:id` | 5.17 | Modifier un statut |
 | `DELETE` | `/statuses/:id` | 5.18 | Supprimer un statut |
-| `POST` | `/import/tickets` | 5.19 | Import CSV en masse |
+| `GET` | `/kanban_settings` | 5.18.1 | Lister tous les paramètres Kanban |
+| `GET` | `/kanban_settings/:status_id` | 5.18.2 | Récupérer les paramètres d'un statut |
+| `POST` | `/kanban_settings` | 5.19 | Modifier/Créer les paramètres Kanban |
+| `PUT` | `/kanban_settings/:status_id` | 5.20 | Modifier les paramètres Kanban |
+| `GET` | `/couleurs` | 5.21 | Lister toutes les couleurs |
+| `POST` | `/couleurs` | 5.22 | Créer une couleur |
+| `PUT` | `/couleurs/:id` | 5.23 | Modifier une couleur |
+| `DELETE` | `/couleurs/:id` | 5.24 | Supprimer une couleur |
+| `POST` | `/import/tickets` | 5.25 | Import CSV en masse |
+
+---
+
+## 7 . Structure tableau
+
+```json
+{
+    "num_ticket": 101,
+    "date": "2026-06-07",
+    "heure": "09:30",
+    "titre": "Écran HS",
+    "description": "L'écran du bureau 12 ne s'allume plus",
+    "status": "New",
+    "priority": "High",
+    "items": "[\"PC-001\"]"
+}
+```
+
+---
+
+## 8. Gestion des Couleurs (Kanban)
+
+Cette section détaille les routes permettant de gérer les couleurs disponibles pour personnaliser l'interface. La liaison avec un statut et sa traduction se fait désormais via la table `kanban_settings`, mais est gérée de manière transparente par les requêtes `/statuses`.
+
+### 8.1. Couleurs (`/couleurs`)
+
+| Route | Description |
+|-------|-------------|
+| `GET /couleurs` | Liste toutes les couleurs définies |
+| `POST /couleurs` | Crée une couleur → body: `{ "name": "Rouge", "hex_code": "#FF0000" }` |
+| `PUT /couleurs/:id` | Modifie une couleur → body: `{ "name": "Rouge Vif", "hex_code": "#E60000" }` |
+| `DELETE /couleurs/:id` | Supprime une couleur |
 

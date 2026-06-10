@@ -1,6 +1,6 @@
-import api_node from '../../../api/api_node'
 import { useNavigate } from 'react-router-dom'
 import { useState, useEffect } from 'react'
+import api_ticket from '../../../api/api_ticket'
 
 function ListeTickets() {
     const [tickets, setTickets] = useState([])
@@ -11,7 +11,7 @@ function ListeTickets() {
 
     const getTickets = async () => {
         try {
-            const response = await api_node.get('/tickets')
+            const response = await api_ticket.get('/tickets')
             setTickets(response.data.data)
             setTotal(response.data.total)
             setLoading(false)
@@ -43,13 +43,14 @@ function ListeTickets() {
                             <td>{t.num_ticket}</td>
                             <td>{t.titre}</td>
                             <td>{t.description}</td>
-                            <td><button onClick={()=>navigate(`/ticket/fiche/${t.id}`)}>Voir fiche</button></td>
+                            <td><button onClick={() => navigate(`/ticket/fiche/${t.id}`)}>Voir fiche</button></td>
                         </tr>
                     ))}
                 </tbody>
             </table>
-            <button onClick={()=>navigate(`/create/tickets`)}>Creer tickets</button>
+            <button onClick={() => navigate(`/create/tickets`)}>Creer tickets</button>
         </div>
     )
 }
 export default ListeTickets
+

@@ -1,27 +1,26 @@
-import { Link } from 'react-router-dom'
 import ResetData from '../util/reset'
 import api_service from '../../api/api_service'
-import api_node from '../../api/api_node'
 import { useNavigate } from 'react-router-dom'
 import { useState, useEffect } from 'react'
+import api_ticket from '../../api/api_ticket'
 
 function Acceuil() {
     const [loading, setLoading] = useState(true);
     const [message, setMessage] = useState('');
     const [asset, setAsset] = useState([]);
     const [categorie, setCategorie] = useState({});
-    const [ticketStat,setTicketStat] = useState({});
+    const [ticketStat, setTicketStat] = useState({});
     const [totalAssets, setTotalAssets] = useState(0);
-    const [ticket,setTicket] = useState([]);
-    const [totalTickets,setTotalTickets]  = useState(0);
+    const [ticket, setTicket] = useState([]);
+    const [totalTickets, setTotalTickets] = useState(0);
     const navigate = useNavigate();
 
-    const getTickets = async()=>{
-        try{
-            const response = await api_node.get('/tickets')
+    const getTickets = async () => {
+        try {
+            const response = await api_ticket.get('/tickets')
             setTicket(response.data.data)
             setTotalTickets(response.data.total)
-        }catch(e){
+        } catch (e) {
             setMessage('Erreur lors recuperation')
         }
     }
@@ -50,10 +49,10 @@ function Acceuil() {
             setLoading(false)
         }
     }
-    const getNombreTickets = async()=>{
-        if(ticket.length){
-        const result = {}
-            for(const item of ticket){
+    const getNombreTickets = async () => {
+        if (ticket.length) {
+            const result = {}
+            for (const item of ticket) {
                 const stat = item?.status || 'New'
                 result[stat] = (result[stat] || 0) + 1
             }
@@ -75,7 +74,7 @@ function Acceuil() {
         getNombreTickets()
     }, [ticket])
 
-    if(loading)return<p>Chargement...</p>
+    if (loading) return <p>Chargement...</p>
 
     return (
         <div>
@@ -93,13 +92,14 @@ function Acceuil() {
                 {Object.entries(ticketStat).map(([status, count]) => (
                     <p key={status}>
                         {status} : {count}
-            </p>
+                    </p>
                 ))}
             </div>
 
             <button onClick={() => navigate('/import')}>Pour faire import</button>
             <ResetData />
-            <button onClick={()=>navigate('/list/tickets')}>Voir liste des tickets</button>
+            <button onClick={() => navigate('/list/tickets')}>Voir liste des tickets</button>
+            <button onClick={()=>navigate('/couleur/custom')}>Creer couleur</button>
         </div>
 
     )

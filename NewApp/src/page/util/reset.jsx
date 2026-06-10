@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import api_node from '../../api/api_node'
+import api_import from '../../api/api_import'
 
 function ResetData() {
     const [loading, setLoading] = useState(false)
@@ -9,7 +9,7 @@ function ResetData() {
     const handleResetMysql = async () => {
         setStep('Reset MySQL en cours...')
         try {
-            const res = await api_node.delete('/reset/data/mysql')
+            const res = await api_import.delete('/reset/data/mysql')
             setStep(` MySQL : ${res.data?.message || 'OK'}`)
         } catch (e) {
             console.log(e)
@@ -21,7 +21,7 @@ function ResetData() {
     const handleResetSqlite = async () => {
         setStep('Reset SQLite en cours...')
         try {
-            const res = await api_node.delete('/reset/data/sqlite')
+            const res = await api_import.delete('/reset/data/sqlite')
             setStep(` SQLite : ${res.data?.message || 'OK'}`)
         } catch (e) {
             console.log(e)

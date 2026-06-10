@@ -1,17 +1,16 @@
-import api_node from '../../../api/api_node'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useParams } from 'react-router-dom'
 import { useState, useEffect } from 'react'
+import api_ticket from '../../../api/api_ticket'
 
 function DetailTicket() {
     const [tickets, setTickets] = useState({})
-    const [total, setTotal] = useState([])
     const [loading, setLoading] = useState(true)
     const [message, setMessage] = useState('')
     const { id } = useParams()
 
     const getTickets = async () => {
         try {
-            const response = await api_node.get(`/tickets/${id}`)
+            const response = await api_ticket.get(`/tickets/${id}`)
             setTickets(response.data.data)
             setLoading(false)
         } catch (e) {

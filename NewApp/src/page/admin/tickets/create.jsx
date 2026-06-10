@@ -1,4 +1,4 @@
-import api_node from '../../../api/api_node'
+import api_ticket from '../../../api/api_ticket';
 import api_service from '../../../api/api_service';
 import { useNavigate } from 'react-router-dom'
 import { useState, useEffect } from 'react'
@@ -16,7 +16,7 @@ function InsertTickets() {
 
     const getPriorities = async () => {
         try {
-            const response = await api_node.get('/priorities')
+            const response = await api_ticket.get('/priorities')
             setPriority(response.data.data)
             setLoading(false)
         } catch (e) {
@@ -39,17 +39,17 @@ function InsertTickets() {
     const getItemsDetail = async () => {
         setLoading(true)
         try {
-            const result =[]
+            const result = []
             for (const id of idsSelectionnes) {
                 if (!id) return
                 const response = await api_service.get(`/hardware/${id}`)
                 const itemDetail = response.data
-                const contentOfComponent = {
-                    id: itemDetail.id,
-                    asset_tag: itemDetail.asset_tag,
-                    name: itemDetail.name
-                }
-                // const contentOfComponent = itemDetail.asset_tag
+                // const contentOfComponent = {
+                //     id: itemDetail.id,
+                //     asset_tag: itemDetail.asset_tag,
+                //     name: itemDetail.name
+                // }
+                const contentOfComponent = itemDetail.asset_tag
                 result.push(contentOfComponent)
             }
             setComponent(result)
@@ -60,8 +60,8 @@ function InsertTickets() {
             setLoading(false)
         }
     }
-    
-    
+
+
     const handleCheckboxChange = (id) => {
         setIdsSelectionnes(prev => {
             if (prev.includes(id)) {
@@ -73,9 +73,28 @@ function InsertTickets() {
     };
 
     const createTicket = async () => {
+        if (!title.trim()) {
+            setMessage('Titre manquant')
+            return
+        }
+
+        if (!descri.trim()) {
+            setMessage('Description manquante')
+            return
+        }
+
+        if (!selectedPriority) {
+            setMessage('Sélectionnez une priorité')
+            return
+        }
+
+        if (component.length === 0) {
+            setMessage('Sélectionnez au moins un item')
+            return
+        }
         setLoading(true)
         try {
-            await api_node.post('/tickets', {
+            await api_ticket.post('/tickets', {
                 num_ticket: Date.now() % 100000,
                 titre: title,
                 description: descri,
@@ -86,9 +105,15 @@ function InsertTickets() {
             console.log(e)
             setMessage('Erreur lors création ticket')
         }
-        finally{
+        finally {
             setLoading(false)
         }
+
+        setTitre('')
+        setDescription('')
+        setSelectedPriority('')
+        setIdsSelectionnes([])
+        setComponent([])
     }
 
     useEffect(() => {
@@ -96,19 +121,20 @@ function InsertTickets() {
         getItems()
     }, [])
 
-    useEffect(()=>{
-        if(idsSelectionnes.length>0){
+    useEffect(() => {
+        if (idsSelectionnes.length > 0) {
             getItemsDetail()
-        }else{
+        } else {
             setComponent([])
-        }        
-    },[idsSelectionnes])
+        }
+    }, [idsSelectionnes])
 
     if (loading) return <p>En cours de recuperation data</p>
     return (
         <div>
             <input type="text" onChange={(e) => setTitre(e.target.value)} placeholder='Titre problème' />
             <input type="text" onChange={(e) => setDescription(e.target.value)} placeholder='Description' />
+            <p>{message}</p>
             <p>Priorité </p>
             <select
                 value={selectedPriority}
@@ -141,3 +167,4 @@ function InsertTickets() {
     )
 }
 export default InsertTickets
+

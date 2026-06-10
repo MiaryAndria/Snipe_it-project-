@@ -9,6 +9,8 @@ import Acceuil from './page/admin/acceuil'
 import ImportData from './page/util/import'
 import ListeTickets from './page/admin/tickets/liste'
 import InsertTickets from './page/admin/tickets/create'
+import ListeTicket from './page/clients/tickets/liste'
+import CustomParams from './page/admin/config/create'
 
 function App() {
   return (
@@ -20,9 +22,12 @@ function App() {
           <Route path="/admin/acceuil" element={<Acceuil/>} />
           <Route path="/admin" element={<LoginAdmin/>} />
           <Route path="/actifs" element={<ListeActif/>} />
+          <Route path="/liste/tickets" element={<ListeTicket/>} />
+          <Route path="/detail/ticket/:id" element={<DetailTicket/>} />
           <Route path="/create/tickets" element={<InsertTickets/>} />
           <Route path="/list/tickets" element={<ListeTickets/>} />
           <Route path="/ticket/fiche/:id" element={<DetailTicket/>} />
+          <Route path="/admin/custom" element={<CustomParams/>} />
           {/* <Route path="/users" element={<ListeUsers />} />
           <Route path="/reset" element={<ResetData />} />
           <Route path="/categories" element={<ListeCategorie />} /> */}

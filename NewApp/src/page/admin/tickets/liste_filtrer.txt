@@ -1,0 +1,99 @@
+import { useNavigate } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import api_ticket from '../../../api/api_ticket'
+
+function ListeTickets() {
+    const [tickets, setTickets] = useState([])
+    const [loading, setLoading] = useState(true)
+    const [numberSearch, setNumberSearch] = useState('')
+    const [sort, setSort] = useState('')
+    const [order, setOrder] = useState('')
+    const [label, setLabel] = useState('')
+    const [priority, setPriority] = useState([])
+    const [selectedPriority, setSelectedPriority] = useState(null)
+    const [message, setMessage] = useState('')
+    const navigate = useNavigate()
+    const limite = 5
+    const getTickets = async (selectedPriority, label, sort, order) => {
+        try {
+            const params = {}
+            if (selectedPriority) params.priority_id = selectedPriority
+            if (label) params.search = label
+            if (sort) params.sort = sort
+            if (order) params.order = order
+            const response = await api_ticket.get('/tickets', { params })
+            setTickets(response.data.data)
+            setLoading(false)
+        } catch (e) {
+            console.log(e)
+            setMessage('Erreur lors recuperation')
+        }
+    }
+
+    const getPriority = async () => {
+        try {
+            const response = await api_ticket.get('/priorities')
+            setPriority(response.data.data)
+        } catch (e) {
+            console.log(e)
+            setMessage('Erreur lors recuperation')
+
+        }
+    }
+
+    useEffect(() => {
+        getPriority()
+        getTickets(selectedPriority, label, sort, order)
+    }, [selectedPriority, label, sort, order])
+    if (loading) return <p>En chargement </p>
+
+    return (
+        <div>
+            <input type='text' onChange={(e) => setLabel(e.target.value)} placeholder='rechercher par une valeur' />
+            <select value={selectedPriority ?? ""} onChange={(e) => setSelectedPriority(e.target.value)}>
+                <option value="">-- Filtrer par priorité --</option>
+                {priority.map(p => (
+                    <option key={p.id} value={p.id}>{p.name}</option>
+                ))}
+            </select>
+            <select value={order ?? ""} onChange={(e) => setOrder(e.target.value)}>
+                <option value="">-- Ordre de filtrage --</option>
+                <option value="desc">desc</option>
+                <option value="asc">asc</option>
+            </select>
+
+            <select value={sort ?? ""} onChange={(e) => setSort(e.target.value)}>
+                <option value="">-- Filtrer par colonne --</option>
+                <option value="num_ticket">numero</option>
+                <option value="date">date</option>
+                <option value="heure">heure</option>
+                <option value="description">description</option>
+                <option value="status_id">status</option>
+                <option value="priority_id">priorité</option>
+            </select>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>numero </th>
+                        <th>titre </th>
+                        <th>description </th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {tickets.map(t => (
+                        <tr key={t.id}>
+                            <td>{t.num_ticket}</td>
+                            <td>{t.titre}</td>
+                            <td>{t.description}</td>
+                            <td><button onClick={() => navigate(`/ticket/fiche/${t.id}`)}>Voir fiche</button></td>
+                        </tr>
+                    ))}
+                </tbody>
+            </table>
+            <button onClick={() => navigate(`/create/tickets`)}>Creer tickets</button>
+        </div>
+    )
+}
+export default ListeTickets

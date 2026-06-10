@@ -45,7 +45,7 @@ function ImportData() {
                 setLoadingAssets(false)
             }
         }
-        reader.readAsText(fileAssets)
+        reader.readAsText(fileAssets, 'utf-8')
     }
 
     const importTickets = async () => {
@@ -74,7 +74,7 @@ function ImportData() {
                 setLoadingTickets(false)
             }
         }
-        reader.readAsText(fileTickets)
+        reader.readAsText(fileTickets, 'utf-8')
     }
 
     return (

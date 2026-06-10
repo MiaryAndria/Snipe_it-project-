@@ -1,5 +1,5 @@
 import api_service from '../api/api_service'
-import api_node from '../api/api_node'
+import api_import from '../api/api_import'
 
 class ImportService {
 
@@ -27,6 +27,7 @@ class ImportService {
 
     clean(val, defaultValue = '') {
         if (val === null || val === undefined) return defaultValue
+        // Supprime absolument tous les guillemets et apostrophes (même à l'intérieur)
         return val.toString().replace(/["']/g, '').trim()
     }
 
@@ -53,15 +54,33 @@ class ImportService {
         return isNaN(n) ? defaultValue : n
     }
 
-    /** Recherche flexible d'une valeur dans une row CSV */
-    getVal(row, ...keys) {
+    /** Recherche et nettoyage doux pour les TEXTES (Titre, Description, Nom) : garde les apostrophes */
+    getTextVal(row, ...keys) {
         if (!row) return ''
         for (const k of keys) {
             const foundKey = Object.keys(row).find(
                 rk => rk.toLowerCase().trim() === k.toLowerCase().trim()
             )
             if (foundKey && row[foundKey] !== undefined && row[foundKey] !== null) {
-                return this.cleanCSV(row[foundKey])
+                let val = row[foundKey].toString().trim()
+                val = val.replace(/^["']+|["']+$/g, '')
+                val = val.replace(/""/g, '"').replace(/''/g, "'")
+                return val.trim()
+            }
+        }
+        return ''
+    }
+
+    /** Recherche et nettoyage agressif pour les IDENTIFIANTS (asset_tag, serial, model) : supprime guillemets et virgules */
+    getIdVal(row, ...keys) {
+        if (!row) return ''
+        for (const k of keys) {
+            const foundKey = Object.keys(row).find(
+                rk => rk.toLowerCase().trim() === k.toLowerCase().trim()
+            )
+            if (foundKey && row[foundKey] !== undefined && row[foundKey] !== null) {
+                let val = row[foundKey].toString()
+                return val.replace(/["']/g, '').replace(/,/g, ' ').replace(/\s+/g, ' ').trim()
             }
         }
         return ''
@@ -345,8 +364,8 @@ class ImportService {
     // ============================================================
 
     async insertUser(row, companyId, departmentId) {
-        const fullName = this.getVal(row, 'user', 'name', 'nom', 'utilisateur','user_name','nom utilisateur','nom_utilisateur')
-        const email    = this.getVal(row, 'email', 'e-mail', 'mail','e_mail')
+        const fullName = this.getTextVal(row, 'user', 'name', 'nom', 'utilisateur','user_name','nom utilisateur','nom_utilisateur')
+        const email    = this.getIdVal(row, 'email', 'e-mail', 'mail','e_mail')
         if (!fullName && !email) return null
 
         const cacheKey = (email || fullName).toLowerCase()
@@ -395,11 +414,11 @@ class ImportService {
     // ============================================================
 
     async insertAsset(row, modelId, statusId, companyId, userId) {
-        const assetTag     = this.getVal(row, 'asset_tag', 'asset-tag', 'asset', 'tag', 'code', 'identifiant')
-        const serial       = this.getVal(row, 'serial', 'serial_number', 'numero_serie', 'num_serie', 'sn')
-        const name         = this.getVal(row, 'name', 'nom', 'libelle', 'titre', 'asset_name')
-        const purchaseDate = this.formatDate(this.getVal(row, 'purchase_date', 'date_achat', 'date', 'achat'))
-        const purchaseCost = this.cleanNum(this.getVal(row, 'purchase_cost', 'cout', 'prix', 'cost', 'valeur'))
+        const assetTag     = this.getIdVal(row, 'asset_tag', 'asset-tag', 'asset', 'tag', 'code', 'identifiant')
+        const serial       = this.getIdVal(row, 'serial', 'serial_number', 'numero_serie', 'num_serie', 'sn')
+        const name         = this.getTextVal(row, 'name', 'nom', 'libelle', 'titre', 'asset_name')
+        const purchaseDate = this.formatDate(this.getIdVal(row, 'purchase_date', 'date_achat', 'date', 'achat'))
+        const purchaseCost = this.cleanNum(this.getIdVal(row, 'purchase_cost', 'cout', 'prix', 'cost', 'valeur'))
 
         if (!assetTag || !modelId || !statusId) {
             console.error(`[ASSET] Champs obligatoires manquants — tag:${assetTag} model:${modelId} status:${statusId}`)
@@ -419,7 +438,7 @@ class ImportService {
             if (purchaseCost) payload.purchase_cost  = purchaseCost
 
             // Checkout à un user si status = Deployed
-            const statusName = this.getVal(row, 'status', 'statut', 'etat', 'état')
+            const statusName = this.getTextVal(row, 'status', 'statut', 'etat', 'état')
             if (userId && statusName.toLowerCase().includes('deploy')) {
                 payload.assigned_user = userId
             }
@@ -447,31 +466,42 @@ class ImportService {
         console.log(`  IMPORT CSV → Snipe-IT : ${rows.length} ligne(s)`)
         console.log(`══════════════════════════════════════════\n`)
 
-        const results = { success: 0, errors: 0, details: [] }
+        const results = { success: 0, errors: 0, skipped: 0, details: [] }
+        const seenAssetTags = new Set()
 
         for (let i = 0; i < rows.length; i++) {
             const row = rows[i]
             const lineNum = i + 2  // +2 car ligne 1 = en-tête
             try {
+                // ── 0. Duplicate Check ────────────────────────
+                const assetTag = this.getIdVal(row, 'asset_tag', 'asset-tag', 'asset', 'tag', 'code', 'identifiant')
+                if (assetTag && seenAssetTags.has(assetTag)) {
+                    console.warn(`[LIGNE ${lineNum}] Doublon asset_tag "${assetTag}" ignoré`)
+                    results.skipped = (results.skipped || 0) + 1
+                    results.details.push({ line: lineNum, status: 'SKIP', asset_tag: assetTag, error: 'Doublon détecté dans le CSV' })
+                    continue
+                }
+                if (assetTag) seenAssetTags.add(assetTag)
+
                 // ── 1. Company ────────────────────────────
-                const companyName = this.getVal(row, 'company', 'entreprise', 'societe', 'société', 'compagnie')
+                const companyName = this.getTextVal(row, 'company', 'entreprise', 'societe', 'société', 'compagnie')
                 const companyId   = await this.insertCompany(companyName)
 
                 // ── 2. Category ───────────────────────────
-                const categoryName = this.getVal(row, 'category', 'categorie', 'cat', 'type', 'catégorie')
+                const categoryName = this.getTextVal(row, 'category', 'categorie', 'cat', 'type', 'catégorie')
                 const categoryId   = await this.insertCategory(categoryName, 'asset')
 
                 // ── 3. Manufacturer ───────────────────────
-                const mfgName      = this.getVal(row, 'manufacturer', 'fabricant', 'marque', 'constructeur')
+                const mfgName      = this.getTextVal(row, 'manufacturer', 'fabricant', 'marque', 'constructeur')
                 const manufacturerId = await this.insertManufacturer(mfgName)
 
                 // ── User existence check pour status ───────
-                const userNameCheck = this.getVal(row, 'user', 'utilisateur', 'nom', 'employe', 'employé', 'assignee')
-                const userEmailCheck = this.getVal(row, 'email', 'mail', 'courriel', 'e-mail')
+                const userNameCheck = this.getTextVal(row, 'user', 'utilisateur', 'nom', 'employe', 'employé', 'assignee')
+                const userEmailCheck = this.getIdVal(row, 'email', 'mail', 'courriel', 'e-mail')
                 const hasUser = !!(userNameCheck || userEmailCheck)
 
                 // ── 4. Status Label ───────────────────────
-                let statusName = this.getVal(row, 'status', 'statut', 'etat', 'état')
+                let statusName = this.getTextVal(row, 'status', 'statut', 'etat', 'état')
                 // Si "Deployed" mais aucun user, on modifie en "Ready to Deploy"
                 if (statusName.toLowerCase() === 'deployed' && !hasUser) {
                     statusName = 'Ready to Deploy'
@@ -479,16 +509,16 @@ class ImportService {
                 const statusId   = await this.insertStatusLabel(statusName)
 
                 // ── 5. Department ─────────────────────────
-                const deptName    = this.getVal(row, 'department', 'departement', 'service', 'dept', 'département')
+                const deptName    = this.getTextVal(row, 'department', 'departement', 'service', 'dept', 'département')
                 const departmentId = await this.insertDepartment(deptName, companyId)
 
                 // ── 6. Model ──────────────────────────────
-                const modelName = this.getVal(row, 'model', 'modele', 'modèle')
+                const modelName = this.getIdVal(row, 'model', 'modele', 'modèle')
                 const modelId   = await this.insertModel(modelName, categoryId, manufacturerId)
 
                 // ── 7. User ───────────────────────────────
-                const userName = this.getVal(row, 'user', 'utilisateur', 'nom', 'employe', 'employé', 'assignee')
-                const userEmail = this.getVal(row, 'email', 'mail', 'courriel', 'e-mail')
+                const userName = this.getTextVal(row, 'user', 'utilisateur', 'nom', 'employe', 'employé', 'assignee')
+                const userEmail = this.getIdVal(row, 'email', 'mail', 'courriel', 'e-mail')
                 let userId = null
                 if (userName || userEmail) {
                     userId = await this.insertUser(row, companyId, departmentId)
@@ -499,14 +529,14 @@ class ImportService {
 
                 if (assetId) {
                     results.success++
-                    results.details.push({ line: lineNum, status: 'OK', asset_tag: this.getVal(row, 'asset_tag'), id: assetId })
+                    results.details.push({ line: lineNum, status: 'OK', asset_tag: assetTag, id: assetId })
                 } else {
                     results.errors++
-                    results.details.push({ line: lineNum, status: 'ERREUR', asset_tag: this.getVal(row, 'asset_tag'), error: 'Asset non créé' })
+                    results.details.push({ line: lineNum, status: 'ERREUR', asset_tag: assetTag, error: 'Asset non créé' })
                 }
             } catch (err) {
                 results.errors++
-                results.details.push({ line: lineNum, status: 'ERREUR', asset_tag: this.getVal(row, 'asset_tag'), error: err.message })
+                results.details.push({ line: lineNum, status: 'ERREUR', asset_tag: this.getIdVal(row, 'asset_tag'), error: err.message })
                 console.error(`[LIGNE ${lineNum}] Erreur :`, err.message)
             }
 
@@ -528,14 +558,11 @@ class ImportService {
     parseTicketItems(raw) {
         if (!raw || raw === '') return '[]'
         
-        let cleaned = raw.toString().replace(/["'\[\]]/g, '').trim()
-        cleaned = cleaned.replace(/^[,;\s]+|[,;\s]+$/g, '')
+        // Extraction super robuste : on récupère tout ce qui n'est PAS un séparateur, un guillemet, un crochet ou un espace
+        // Cela gère parfaitement des cas concaténés comme "[""VID-001""]""[""LAP-002""]"
+        const parts = raw.toString().match(/[^"'\[\];,\s]+/g)
         
-        if (!cleaned) return '[]'
-
-        const parts = cleaned.split(/[,;]/)
-            .map(s => s.trim())
-            .filter(s => s !== '')
+        if (!parts || parts.length === 0) return '[]'
 
         return JSON.stringify(parts)
     }
@@ -574,6 +601,7 @@ class ImportService {
 
         const results = { success: 0, errors: 0, skipped: 0, details: [] }
         const validTickets = []
+        const seenNumTickets = new Set()
 
         for (let i = 0; i < rows.length; i++) {
             const row = rows[i]
@@ -581,7 +609,7 @@ class ImportService {
 
             try {
                 const numTicket = this.cleanNum(
-                    this.getVal(row, 'Num_Ticket', 'num_ticket', 'numero ticket', 'num ticket', 'numero', 'num', 'id', 'ticket'),
+                    this.getIdVal(row, 'Num_Ticket', 'num_ticket', 'numero ticket', 'num ticket', 'numero', 'num', 'id', 'ticket'),
                     0
                 )
 
@@ -592,7 +620,15 @@ class ImportService {
                     continue
                 }
 
-                const titre = this.getVal(row, 'Titre', 'titre', 'title', 'sujet', 'objet', 'nom')
+                if (seenNumTickets.has(numTicket)) {
+                    console.warn(`[TICKET L${lineNum}] Doublon num_ticket "${numTicket}" ignoré`)
+                    results.skipped++
+                    results.details.push({ line: lineNum, status: 'SKIP', error: 'Doublon num_ticket détecté' })
+                    continue
+                }
+                seenNumTickets.add(numTicket)
+
+                const titre = this.getTextVal(row, 'Titre', 'titre', 'title', 'sujet', 'objet', 'nom')
                 if (!titre) {
                     console.warn(`[TICKET L${lineNum}] titre vide, ignoré`)
                     results.skipped++
@@ -600,12 +636,12 @@ class ImportService {
                     continue
                 }
 
-                const dateRaw = this.formatDate(this.getVal(row, 'Date', 'date', 'date_ticket', 'date creation')) || ''
-                const heureRaw = this.getVal(row, 'Heure', 'heure', 'time', 'hour', 'temps')
-                const description = this.getVal(row, 'Description', 'description', 'desc', 'detail', 'details', 'contenu') || titre
-                const status = this.normalizeTicketStatus(this.getVal(row, 'Status', 'status', 'statut', 'etat', 'état'))
-                const priority = this.normalizeTicketPriority(this.getVal(row, 'Priority', 'priority', 'priorite', 'prio', 'priorité', 'importance'))
-                const items = this.parseTicketItems(this.getVal(row, 'Items', 'items', 'assets', 'equipements', 'materiels', 'matériels', 'asset_tag', 'asset', 'tag'))
+                const dateRaw = this.formatDate(this.getIdVal(row, 'Date', 'date', 'date_ticket', 'date creation')) || ''
+                const heureRaw = this.getIdVal(row, 'Heure', 'heure', 'time', 'hour', 'temps')
+                const description = this.getTextVal(row, 'Description', 'description', 'desc', 'detail', 'details', 'contenu') || titre
+                const status = this.normalizeTicketStatus(this.getTextVal(row, 'Status', 'status', 'statut', 'etat', 'état'))
+                const priority = this.normalizeTicketPriority(this.getTextVal(row, 'Priority', 'priority', 'priorite', 'prio', 'priorité', 'importance'))
+                const items = this.parseTicketItems(this.getTextVal(row, 'Items', 'items', 'assets', 'equipements', 'materiels', 'matériels', 'asset_tag', 'asset', 'tag'))
 
                 validTickets.push({
                     num_ticket: numTicket,
@@ -634,7 +670,7 @@ class ImportService {
         if (progressCallback) progressCallback(0, validTickets.length)
 
         try {
-            const res = await api_node.post('/import/tickets', { tickets: validTickets })
+            const res = await api_import.post('/import/tickets', { tickets: validTickets })
             results.success = res.data?.count || validTickets.length
             results.message = res.data?.message || `${results.success} ticket(s) importé(s)`
             console.log(`[TICKETS] ${results.message}`)
