@@ -44,14 +44,16 @@ class ImportService {
         if (val === null || val === undefined || val === '') return defaultValue
         let s = val.toString().replace(/["';\s]/g, '')
         // Si ça ressemble à un nombre anglais (ex: 1,200 ou 1,200.50), retirer les virgules
-        if (/^\d{1,3}(,\d{3})+(\.\d+)?$/.test(s)) {
+        if (/^-?\d{1,3}(,\d{3})+(\.\d+)?$/.test(s)) {
             s = s.replace(/,/g, '')
         } else {
             // Sinon, considérer que la virgule est une virgule décimale française
             s = s.replace(',', '.')
         }
         const n = parseFloat(s)
-        return isNaN(n) ? defaultValue : n
+        if (isNaN(n)) return defaultValue
+        if (n < 0) throw new Error(`Montant négatif non autorisé : ${val}`)
+        return n
     }
 
     /** Recherche et nettoyage doux pour les TEXTES (Titre, Description, Nom) : garde les apostrophes */
@@ -90,6 +92,7 @@ class ImportService {
     formatDate(dateStr) {
         if (!dateStr) return null
         const cleaned = this.cleanCSV(dateStr)
+        if (!cleaned) return null
         const match = cleaned.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/)
         if (match) {
             const day   = match[1].padStart(2, '0')
@@ -98,7 +101,8 @@ class ImportService {
         }
         // Déjà en YYYY-MM-DD ?
         if (/^\d{4}-\d{2}-\d{2}$/.test(cleaned)) return cleaned
-        return null
+        
+        throw new Error(`Format de date invalide : ${dateStr} (attendu DD/MM/YYYY)`)
     }
 
     /** Mapping status CSV → type Snipe-IT */
@@ -453,6 +457,18 @@ class ImportService {
         }
     }
 
+    /** Vérifie si les colonnes requises sont présentes dans l'en-tête */
+    checkHeaders(headers, requiredFields) {
+        for (const field of requiredFields) {
+            const hasField = field.variations.some(v => 
+                headers.some(h => h.toLowerCase().trim() === v.toLowerCase().trim())
+            )
+            if (!hasField) {
+                throw new Error(`Nom de colonne non conforme. Attendu : ${field.name}`)
+            }
+        }
+    }
+
     // ============================================================
     //  IMPORT PRINCIPAL — traite chaque ligne du CSV
     // ============================================================
@@ -461,6 +477,14 @@ class ImportService {
         this.reset()
         const rows = this.parseCSV(csvContent)
         if (rows.length === 0) throw new Error('CSV vide ou invalide')
+
+        const headers = Object.keys(rows[0])
+        const requiredAssets = [
+            { name: 'Asset Tag', variations: ['asset_tag', 'asset-tag', 'asset', 'tag', 'code', 'identifiant'] },
+            { name: 'Modèle', variations: ['model', 'modele', 'modèle'] },
+            { name: 'Statut', variations: ['status', 'statut', 'etat', 'état'] }
+        ]
+        this.checkHeaders(headers, requiredAssets)
 
         console.log(`\n══════════════════════════════════════════`)
         console.log(`  IMPORT CSV → Snipe-IT : ${rows.length} ligne(s)`)
@@ -594,6 +618,13 @@ class ImportService {
     async importTicketsFromCSV(csvContent, progressCallback) {
         const rows = this.parseCSV(csvContent)
         if (rows.length === 0) throw new Error('CSV tickets vide ou invalide')
+
+        const headers = Object.keys(rows[0])
+        const requiredTickets = [
+            { name: 'Numéro de Ticket', variations: ['Num_Ticket', 'num_ticket', 'numero ticket', 'num ticket', 'numero', 'num', 'id', 'ticket'] },
+            { name: 'Titre', variations: ['Titre', 'titre', 'title', 'sujet', 'objet', 'nom'] }
+        ]
+        this.checkHeaders(headers, requiredTickets)
 
         console.log(`\n══════════════════════════════════════════`)
         console.log(`  IMPORT TICKETS CSV : ${rows.length} ticket(s)`)

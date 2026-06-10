@@ -27,3 +27,8 @@ statuses.map(s => (
         )}
     </Droppable>
 ))
+
+provided.droppableProps = lieu pour faire drop 
+provided.draggableProps = pour ce qu'on drag
+
+si on veut reutiliser draggableId et droppableId on fait parseInt()

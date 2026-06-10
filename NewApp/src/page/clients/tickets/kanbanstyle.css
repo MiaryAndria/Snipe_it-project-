@@ -1,21 +1,98 @@
+/* ── Kanban Page ───────────────────────────────────── */
+.kanban-page { padding: 32px; }
+
+.kanban-page-title {
+  font-size: 1.4rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin-bottom: 24px;
+  color: #111;
+}
+
+/* ── Board ─────────────────────────────────────────── */
 .kanban {
-    display: flex;
-    gap: 20px;
-    overflow-x: auto;
-    padding: 20px;
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  align-items: flex-start;
+  padding-bottom: 16px;
 }
 
+/* ── Colonne ───────────────────────────────────────── */
 .kanban-column {
-    min-width: 320px;
-    background: #f4f5f7;
-    border-radius: 10px;
-    padding: 15px;
+  min-width: 240px;
+  max-width: 280px;
+  flex-shrink: 0;
+  border-radius: 10px;
+  padding: 14px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 180px;
+  border: 1px solid #e5e5e5;
+  background: #f8f8f8;
 }
 
+.kanban-column h3 {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #555;
+  margin: 0;
+}
+
+.kanban-column > button {
+  margin-top: auto;
+  width: 100%;
+  padding: 7px;
+  border-radius: 6px;
+  border: 1px dashed #ccc;
+  background: transparent;
+  color: #888;
+  font-family: inherit;
+  font-size: 0.78rem;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.kanban-column > button:hover { background: #eee; color: #333; }
+
+/* ── Carte ─────────────────────────────────────────── */
 .kanban-card {
-    background: white;
-    padding: 12px;
-    border-radius: 8px;
-    margin-bottom: 10px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+  background: #fff;
+  border: 1px solid #e5e5e5;
+  border-radius: 8px;
+  padding: 10px 12px;
+  cursor: grab;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  transition: box-shadow 0.15s;
+}
+.kanban-card:hover { box-shadow: 0 2px 12px rgba(0,0,0,0.1); }
+.kanban-card:active { cursor: grabbing; }
+
+.kanban-card strong {
+  font-size: 0.7rem;
+  color: #888;
+  letter-spacing: 0.03em;
+}
+
+.kanban-card button {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  text-align: left;
+}
+.kanban-card button p {
+  font-size: 0.83rem;
+  color: #111;
+  font-family: inherit;
+  line-height: 1.4;
+  margin: 0;
+}
+.kanban-card button:hover p {
+  text-decoration: underline;
+  text-underline-offset: 2px;
 }

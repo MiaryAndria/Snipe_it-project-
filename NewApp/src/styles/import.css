@@ -1,0 +1,28 @@
+/* import.css — surcharge minimaliste blanche */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+.import-page { padding: 40px 32px; max-width: 680px; margin: 0 auto; }
+.import-page h1 { font-size: 1.4rem; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 28px; color: #111; }
+
+.import-section {
+  border: 1px solid #e5e5e5;
+  border-radius: 10px;
+  padding: 24px 28px;
+  margin-bottom: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.import-section h2 {
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #888;
+}
+.import-section input[type="file"] { font-family: inherit; font-size: 0.82rem; color: #555; cursor: pointer; }
+
+.import-status { font-size: 0.8rem; color: #888; min-height: 16px; }
+.import-progress { font-size: 0.78rem; color: #111; font-weight: 500; }
+.import-divider { border: none; border-top: 1px solid #f0f0f0; margin: 4px 0; }

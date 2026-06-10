@@ -1,0 +1,8 @@
+Num_Ticket,Date,Heure,Titre,Description,Status,Priority,Items
+1,03/06/2026,13:45,Tsy mandeha,Hafahafa be,New,Medium,"[""PC-001""]"
+2,04/06/2026,10:45,Michauffe,Mamay be,In Progress,High,"[""PC-001"",""LAP-002"",""VID-001""]"
+3,04/06/2026,15:45,Test,Asset inconnu,New,Low,"[""PC-999""]"
+4,04/06/2026,15:45,Erreur JSON,Test,New,Low,"[""PC-001"""
+5,04/06/2026,15:45,Pas d'asset,Test,New,Low,"[]"
+6,04/06/2026,15:45,Test priorité,Test,New,SuperUrgent,"[""PC-001""]"
+999999999,04/06/2026,23:59,"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA","Description très longue",Closed,Critical,"[""PC-001""]"

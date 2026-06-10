@@ -200,8 +200,6 @@ et aussi pour eviter les doublons
         setSelectedItems([...selectedItems,e.target.value])
     }
 
-comment bien utiliser prev dia fanazavana fanampina momba ity partie ity     
-
 const handleOnChange =(e)=>{
         const item = item.find(i=> i.id === Number(e.target.value))
         if(item){
@@ -216,6 +214,13 @@ const handleOnChange =(e)=>{
 sort veut dire trier par colonne 
 accompagné de order desc asc
 
+windows pop up pour confirmation
+const reponse = window.prompt(`Entrez l'ID du status destination pour confirmer (attendu: ${statusDestination?.id})`)
+        if (reponse === null) return
+        if (parseInt(reponse) !== statusDestination?.id) {
+            window.alert('ID incorrect, déplacement annulé')
+            return
+        }
 
 ## passer information d'une page à une autre update page update prerempli mettre dans state l'objet qu'on veut que la page recupère 
 const navigate = useNavigate()
@@ -246,3 +251,4 @@ function EditTicket() {
     const [idsSelectionnes, setIdsSelectionnes] = useState(
         ticket?.items?.map(i => i.id) || []  // ← extraire les ids des items
     ) }
+

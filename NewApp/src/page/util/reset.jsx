@@ -1,5 +1,7 @@
 import { useState } from 'react'
 import api_import from '../../api/api_import'
+import '../../styles/global.css'
+import '../../styles/reset.css'
 
 function ResetData() {
     const [loading, setLoading] = useState(false)
@@ -31,6 +33,11 @@ function ResetData() {
     }
 
     const handleReset = async () => {
+        const windowConfirm = window.confirm("Êtes vous sur de reinitialiser ?")
+        console.log("Suppression exécutée")
+
+        if(!windowConfirm) return
+
         setLoading(true)
         setMessage('')
         setStep('')
@@ -48,12 +55,12 @@ function ResetData() {
     }
 
     return (
-        <div>
-            <button onClick={handleReset} disabled={loading}>
-                {loading ? ' Reset en cours...' : 'Reset data'}
+        <div className="reset-widget">
+            <button className="btn btn-danger" onClick={handleReset} disabled={loading}>
+                {loading ? 'Reset en cours...' : 'Reset data'}
             </button>
-            {step && <p>{step}</p>}
-            {message && <p><strong>{message}</strong></p>}
+            {step && <p className="reset-step">{step}</p>}
+            {message && <p className="reset-message"><strong>{message}</strong></p>}
         </div>
     )
 }

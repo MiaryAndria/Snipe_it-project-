@@ -1,0 +1,17 @@
+/* actifs.css — surcharge minimaliste blanche */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+.actifs-page { padding: 32px; max-width: 1400px; margin: 0 auto; }
+
+.actifs-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.total-value { font-size: 0.85rem; color: #555; }
+.total-value strong { font-weight: 600; color: #111; }

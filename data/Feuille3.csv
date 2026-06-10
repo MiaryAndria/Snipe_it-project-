@@ -1,0 +1,18 @@
+asset_tag,serial,name,category,manufacturer,model,status,company,user,email,department,purchase_date,purchase_cost
+PC-001,SER001,Poste Direction,Desktop,Dell,OptiPlex 7090,Deployed,ITUniversity,Jean Rakoto,jean@ituniversity.mg,Direction,15/01/2025,1200
+PC-001,SER001,Poste 1,Desktop,Dell,7090,Deployed,ITUniversity,,,,01/01/2025,1200
+PC-001,SER002,Poste 2,Desktop,Dell,7090,Deployed,ITUniversity,,,,01/01/2025,1200
+PC-002,SER001,Poste 3,Desktop,Dell,7090,Deployed,ITUniversity,,,,01/01/2025,1200
+PC-003,SER003,Poste Test Date,Desktop,Dell,7090,Deployed,ITUniversity,,,,32/13/2025,1200
+PC-004,SER004,PC Français,Desktop,Dell,7090,Deployed,ITUniversity,,,,01/01/2025,"1 200,50"
+PC-005,SER005,"Poste ""Président""",Desktop,Dell,7090,Deployed,ITUniversity,Jean d'Arc,jean@ituniversity.mg,Direction,01/01/2025,1200
+,SER006,Poste Sans AssetTag,Desktop,Dell,7090,Deployed,ITUniversity,,,,01/01/2025,1200 
+,SER006,Poste Sans AssetTag,Desktop,Dell,7090,Deployed,ITUniversity,,,,2025/01/,1200 
+PC-101,SER101,Test Date,Desktop,Dell,7090,Deployed,ITUniversity,,,,2025-01-01,1200
+PC-102,SER102,Test Prix Negatif,Desktop,Dell,7090,Deployed,ITUniversity,,,,01/01/2025,-1200
+
+PC 001 
+Pc002
+Pc 004
+Pc 005
+pc 101

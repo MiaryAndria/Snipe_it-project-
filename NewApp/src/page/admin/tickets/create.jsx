@@ -2,6 +2,7 @@ import api_ticket from '../../../api/api_ticket';
 import api_service from '../../../api/api_service';
 import { useNavigate } from 'react-router-dom'
 import { useState, useEffect } from 'react'
+import '../../../styles/global.css'
 
 function InsertTickets() {
     const [priorities, setPriority] = useState([])
@@ -61,37 +62,18 @@ function InsertTickets() {
         }
     }
 
-
     const handleCheckboxChange = (id) => {
         setIdsSelectionnes(prev => {
-            if (prev.includes(id)) {
-                return prev.filter(item => item !== id);
-            } else {
-                return [...prev, id];
-            }
+            if (prev.includes(id)) return prev.filter(item => item !== id);
+            else return [...prev, id];
         });
     };
 
     const createTicket = async () => {
-        if (!title.trim()) {
-            setMessage('Titre manquant')
-            return
-        }
-
-        if (!descri.trim()) {
-            setMessage('Description manquante')
-            return
-        }
-
-        if (!selectedPriority) {
-            setMessage('Sélectionnez une priorité')
-            return
-        }
-
-        if (component.length === 0) {
-            setMessage('Sélectionnez au moins un item')
-            return
-        }
+        if (!title.trim()) { setMessage('Titre manquant'); return }
+        if (!descri.trim()) { setMessage('Description manquante'); return }
+        if (!selectedPriority) { setMessage('Sélectionnez une priorité'); return }
+        if (component.length === 0) { setMessage('Sélectionnez au moins un item'); return }
         setLoading(true)
         try {
             await api_ticket.post('/tickets', {
@@ -104,11 +86,9 @@ function InsertTickets() {
         } catch (e) {
             console.log(e)
             setMessage('Erreur lors création ticket')
-        }
-        finally {
+        } finally {
             setLoading(false)
         }
-
         setTitre('')
         setDescription('')
         setSelectedPriority('')
@@ -117,54 +97,61 @@ function InsertTickets() {
     }
 
     useEffect(() => {
-        getPriorities()
+        getPriorities();
         getItems()
     }, [])
 
     useEffect(() => {
-        if (idsSelectionnes.length > 0) {
-            getItemsDetail()
-        } else {
-            setComponent([])
-        }
+        if (idsSelectionnes.length > 0) getItemsDetail()
+        else setComponent([])
     }, [idsSelectionnes])
 
-    if (loading) return <p>En cours de recuperation data</p>
-    return (
-        <div>
-            <input type="text" onChange={(e) => setTitre(e.target.value)} placeholder='Titre problème' />
-            <input type="text" onChange={(e) => setDescription(e.target.value)} placeholder='Description' />
-            <p>{message}</p>
-            <p>Priorité </p>
-            <select
-                value={selectedPriority}
-                onChange={(e) => setSelectedPriority(e.target.value)}>
-                <option value="">-- Choisir --</option>
-                {priorities.map(p => (
-                    <option key={p.id} value={p.id}>
-                        {p.name}
-                    </option>
-                ))}
-            </select>
-            <h3>Sélectionnez les items à ajouter :</h3>
-            <ul style={{ listStyle: 'none', padding: 0 }}>
-                {items.map(item => (
-                    <li key={item.id} style={{ margin: '10px 0' }}>
-                        <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
-                            <input
-                                type="checkbox"
-                                checked={idsSelectionnes.includes(item.id)}
-                                onChange={() => handleCheckboxChange(item.id)}
-                            />
-                            {item.name} - {item.asset_tag}(ID: {item.id})
-                        </label>
-                    </li>
-                ))}
-            </ul>
-            <button onClick={createTicket}>Creer ticket</button>
+    if (loading) return (
+        <div className="flex justify-center items-center h-screen">
+            <span className="loading loading-infinity loading-xs" style={{transform: 'scale(0.3)'}}></span>
         </div>
+    )
 
+    return (
+        <div className="page-sm">
+            <h1 className="page-title">Créer un ticket</h1>
+            <div className="card">
+                <div className="form-group">
+                    <label className="form-label">Titre</label>
+                    <input className="field-input" type="text" onChange={(e) => setTitre(e.target.value)} placeholder="Titre problème" />
+                </div>
+                <div className="form-group">
+                    <label className="form-label">Description</label>
+                    <input className="field-input" type="text" onChange={(e) => setDescription(e.target.value)} placeholder="Description" />
+                </div>
+                <div className="form-group">
+                    <label className="form-label">Priorité</label>
+                    <select className="field-select" value={selectedPriority} onChange={(e) => setSelectedPriority(e.target.value)}>
+                        <option value="">-- Choisir --</option>
+                        {priorities.map(p => (
+                            <option key={p.id} value={p.id}>{p.name}</option>
+                        ))}
+                    </select>
+                </div>
+                <div className="form-group">
+                    <label className="form-label">Items à ajouter</label>
+                    <ul className="check-list">
+                        {items.map(item => (
+                            <li key={item.id}>
+                                <label>
+                                    <input type="checkbox" checked={idsSelectionnes.includes(item.id)} onChange={() => handleCheckboxChange(item.id)} />
+                                    {item.name} - {item.asset_tag} (ID: {item.id})
+                                </label>
+                            </li>
+                        ))}
+                    </ul>
+                </div>
+                <p className="msg">{message}</p>
+                <div className="actions-row">
+                    <button className="btn" onClick={createTicket}>Créer ticket</button>
+                </div>
+            </div>
+        </div>
     )
 }
 export default InsertTickets
-

@@ -5,6 +5,7 @@ import api_ticket from "../../../api/api_ticket"
 import api_service from "../../../api/api_service"
 import './kanbanstyle.css'
 import './modal.css'
+import '../../../styles/global.css'
 function ListeTicket() {
     const [ticket, setTicket] = useState([])
     const [priorities, setPriority] = useState([])
@@ -16,17 +17,28 @@ function ListeTicket() {
     const [component, setComponent] = useState([])
     const [descri, setDescription] = useState('');
     const [loading, setLoading] = useState(true)
-    const [message, setMessage] = useState('')
     const [statuses, setStatuses] = useState([])
     const [kanbanSetting, setKanbanSettings] = useState([])
     const [isModalOpen, setIsModalOpen] = useState(false)
     const navigate = useNavigate()
 
+
     const onDrag = async (result) => {
+
         const { destination, source, draggableId } = result
         if (!destination) return
         if (destination.droppableId == source.droppableId && destination.index == source.index) return
-        const newStatusId = parseInt(destination.droppableId)  
+
+        const newStatusId = parseInt(destination.droppableId)
+        const statusDestination = statuses.find(s => s.id === newStatusId)
+
+        const reponse = window.prompt(`Entrez l'ID du status destination pour confirmer (attendu: ${statusDestination?.id})`)
+        if (reponse === null) return
+        if (parseInt(reponse) !== statusDestination?.id) {
+            window.alert('ID incorrect, déplacement annulé')
+            return
+        }
+        
         setTicket(prev =>
             prev.map(t =>
                 String(t.id) === draggableId
@@ -223,49 +235,35 @@ function ListeTicket() {
         getStatuses()
     }, [])
 
-    if (loading) return <p>En chargement...</p>
+    if (loading) return (
+        <div className="flex justify-center items-center h-screen">
+            <span className="loading loading-infinity loading-xs" style={{ transform: 'scale(0.3)' }}></span>
+        </div>
+    )
     return (
-        <div>
-            <center><h1>Bienvenue sur page liste ticket</h1></center>
+        <div className="kanban-page">
+            <h1 className="kanban-page-title">Liste des tickets</h1>
             <DragDropContext onDragEnd={onDrag}>
                 <div className="kanban">
                     {statuses.map(s => {
-                        // Déclarations communes — avant le if/else
                         const StatusParKanban = kanbanSetting.find(k => k.status_id === s.id)
                         const Couleur = couleur.find(c => c.id === StatusParKanban?.couleur_id)
                         const ticketFiltrer = ticket.filter(t => t.status_id === s.id)
-
                         return (
                             <Droppable key={s.id} droppableId={String(s.id)}>
                                 {(provided) => (
-                                    <div
-                                        ref={provided.innerRef}
-                                        {...provided.droppableProps}
-                                        className="kanban-column"
-                                        style={{ backgroundColor: Couleur?.hex_code }}
-                                    >
-                                        {/* Titre — label malgache ou nom par défaut */}
-                                        <h3>
-                                            {StatusParKanban?.label_traduction || s.name}
-                                        </h3>
+                                    <div ref={provided.innerRef}{...provided.droppableProps} className="kanban-column"
+                                        style={{ backgroundColor: Couleur?.hex_code }}>
+                                        <h3>{StatusParKanban?.label_traduction || s.name}</h3>
                                         <h3>{ticketFiltrer.length}</h3>
 
                                         {/* Cartes draggables */}
                                         {ticketFiltrer.map((t, index) => (
-                                            <Draggable
-                                                key={String(t.id)}
-                                                draggableId={String(t.id)}
-                                                index={index}
-                                            >
+                                            <Draggable key={String(t.id)} draggableId={String(t.id)} index={index}>
                                                 {(provided) => (
                                                     <div
-                                                        ref={provided.innerRef}
-                                                        {...provided.draggableProps}
-                                                        {...provided.dragHandleProps}
-                                                        className="kanban-card"
-                                                        style={{
-                                                            ...provided.draggableProps.style
-                                                        }}
+                                                        ref={provided.innerRef}{...provided.draggableProps}{...provided.dragHandleProps} className="kanban-card"
+                                                        style={{ ...provided.draggableProps.style }}
                                                     >
                                                         <strong>#{t.num_ticket}</strong>
                                                         <button onClick={() => navigate(`/detail/ticket/${t.id}`)}>
@@ -290,10 +288,10 @@ function ListeTicket() {
                     })}
                 </div>
             </DragDropContext>
-            
+
             {isModalOpen && (
                 <div className="modal-overlay">
-                    <form className="modal" onSubmit={ajouterTicket}>
+                    <form className="custom-modal" onSubmit={ajouterTicket}>
                         <h2>Créer un ticket</h2>
                         <div>
                             <div className="modal-field">

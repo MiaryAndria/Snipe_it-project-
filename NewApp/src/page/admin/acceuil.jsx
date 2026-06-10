@@ -3,6 +3,8 @@ import api_service from '../../api/api_service'
 import { useNavigate } from 'react-router-dom'
 import { useState, useEffect } from 'react'
 import api_ticket from '../../api/api_ticket'
+import '../../styles/global.css'
+import '../../styles/acceuil.css'
 
 function Acceuil() {
     const [loading, setLoading] = useState(true);
@@ -20,9 +22,7 @@ function Acceuil() {
             const response = await api_ticket.get('/tickets')
             setTicket(response.data.data)
             setTotalTickets(response.data.total)
-        } catch (e) {
-            setMessage('Erreur lors recuperation')
-        }
+        } catch (e) { setMessage('Erreur lors recuperation') }
     }
 
     const getAssets = async () => {
@@ -30,12 +30,7 @@ function Acceuil() {
             const response = await api_service.get('/hardware')
             setAsset(response.data.rows)
             setTotalAssets(response.data.total)
-            setLoading(false);
-
-        } catch (e) {
-            setMessage('Erreur lors recuperation')
-
-        }
+        } catch (e) { setMessage('Erreur lors recuperation') }
     }
 
     const getNombreByCategorie = async () => {
@@ -46,10 +41,9 @@ function Acceuil() {
                 result[cat] = (result[cat] || 0) + 1
             }
             setCategorie(result)
-            setLoading(false)
         }
     }
-    
+
     const getNombreTickets = async () => {
         if (ticket.length) {
             const result = {}
@@ -58,13 +52,17 @@ function Acceuil() {
                 result[stat] = (result[stat] || 0) + 1
             }
             setTicketStat(result)
-            setLoading(false)
         }
     }
 
     useEffect(() => {
-        getAssets()
-        getTickets()
+        const init = async () => {
+            setLoading(true)
+            await getAssets()
+            await getTickets()
+            setLoading(false)
+        }
+        init()
     }, [])
 
     useEffect(() => {
@@ -75,34 +73,56 @@ function Acceuil() {
         getNombreTickets()
     }, [ticket])
 
-    if (loading) return <p>Chargement...</p>
+    if (loading) return (
+        <div className="flex justify-center items-center h-screen">
+            <span className="loading loading-infinity loading-xs" style={{ transform: 'scale(0.3)' }}></span>
+        </div>
+    )
 
     return (
-        <div>
-            <p>Bienvenue dans la page admin de notre application où vous pouvez faire des suivis de vos données.</p>
-            <p>Nombre total des assets : {totalAssets}</p>
-            <div>
+        <div className="acceuil-page">
+            <div className="acceuil-header">
+                <h1>Tableau de bord</h1>
+                <p>Suivi global des assets et des tickets de support.</p>
+            </div>
+
+            <div className="kpi-grid">
+                <div className="kpi-card">
+                    <p className="kpi-label">Total Assets</p>
+                    <p className="kpi-value">{totalAssets}</p>
+                </div>
+                <div className="kpi-card">
+                    <p className="kpi-label">Total Tickets</p>
+                    <p className="kpi-value">{totalTickets}</p>
+                </div>
+            </div>
+
+            <div className="section-block">
+                <p className="section-block-title">Assets par catégorie</p>
                 {Object.entries(categorie).map(([category, count]) => (
-                    <p key={category}>
-                        {category} : {count}
-                    </p>
+                    <div className="stat-row" key={category}>
+                        <span>{category}</span>
+                        <span className="stat-count">{count}</span>
+                    </div>
                 ))}
             </div>
-            <p>Nombre total des tickets : {totalTickets}</p>
-            <div>
+
+            <div className="section-block">
+                <p className="section-block-title">Tickets par statut</p>
                 {Object.entries(ticketStat).map(([status, count]) => (
-                    <p key={status}>
-                        {status} : {count}
-                    </p>
+                    <div className="stat-row" key={status}>
+                        <span>{status}</span>
+                        <span className="stat-count">{count}</span>
+                    </div>
                 ))}
             </div>
 
-            <button onClick={() => navigate('/import')}>Pour faire import</button>
-            <ResetData />
-            <button onClick={() => navigate('/list/tickets')}>Voir liste des tickets</button>
-            <button onClick={()=>navigate('/admin/custom')}>Setting</button>
-        </div>
+            <div className="acceuil-actions">
+                <ResetData />
+            </div>
 
+            <p className="msg">{message}</p>
+        </div>
     )
 }
 

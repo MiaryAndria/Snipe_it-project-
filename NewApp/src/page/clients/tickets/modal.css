@@ -1,231 +1,136 @@
-/* ============================================================
-   MODAL — Création de ticket
-   Thème : interface de support IT, sobre et fonctionnel
-   ============================================================ */
-
-/* ── Overlay — fond sombre derrière le modal ── */
+/* ── Modal Overlay ─────────────────────────────────── */
 .modal-overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(15, 23, 42, 0.6);
-    backdrop-filter: blur(3px);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 1000;
-    animation: fadeIn 0.2s ease;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+  padding: 20px;
 }
 
-/* ── Conteneur du modal ── */
-.modal {
-    background: #ffffff;
-    border-radius: 12px;
-    padding: 32px;
-    width: 100%;
-    max-width: 520px;
-    max-height: 85vh;
-    overflow-y: auto;
-    box-shadow: 0 20px 60px rgba(15, 23, 42, 0.2);
-    animation: slideUp 0.25s ease;
+/* ── Modal Box ─────────────────────────────────────── */
+.custom-modal {
+  background: #fff;
+  border: 1px solid #e5e5e5;
+  border-radius: 12px;
+  padding: 28px 32px;
+  width: 100%;
+  max-width: 500px;
+  max-height: 85vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.12);
 }
 
-/* ── Titre du modal ── */
-.modal h2 {
-    font-size: 18px;
-    font-weight: 700;
-    color: #0f172a;
-    margin: 0 0 24px 0;
-    padding-bottom: 16px;
-    border-bottom: 2px solid #e2e8f0;
+.custom-modal h2 {
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: #111;
 }
 
-/* ── Groupes de champs ── */
+/* ── Champ ─────────────────────────────────────────── */
 .modal-field {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    margin-bottom: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
 }
 
 .modal-field label {
-    font-size: 13px;
-    font-weight: 600;
-    color: #475569;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: #888;
 }
 
-/* ── Inputs et select ── */
-.modal input[type="text"],
-.modal select {
-    width: 100%;
-    padding: 10px 14px;
-    border: 1.5px solid #e2e8f0;
-    border-radius: 8px;
-    font-size: 14px;
-    color: #0f172a;
-    background: #f8fafc;
-    transition: border-color 0.15s, box-shadow 0.15s;
-    box-sizing: border-box;
-    outline: none;
+.modal-field input,
+.modal-field select {
+  background: #fff;
+  border: 1px solid #e5e5e5;
+  border-radius: 7px;
+  padding: 8px 11px;
+  color: #111;
+  font-family: inherit;
+  font-size: 0.875rem;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.modal-field input:focus,
+.modal-field select:focus { border-color: #111; }
+.modal-field input::placeholder { color: #bbb; }
+
+/* ── Items ─────────────────────────────────────────── */
+.custom-modal h3 {
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: #888;
+  margin-top: 2px;
 }
 
-.modal input[type="text"]:focus,
-.modal select:focus {
-    border-color: #3b82f6;
-    background: #ffffff;
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
+.custom-modal ul {
+  list-style: none;
+  padding: 0;
+  max-height: 200px;
+  overflow-y: auto;
+  border: 1px solid #e5e5e5;
+  border-radius: 7px;
+}
+.custom-modal ul li label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  border-bottom: 1px solid #f0f0f0;
+  font-size: 0.82rem;
+  color: #333;
+  cursor: pointer;
+  transition: background 0.12s;
+}
+.custom-modal ul li:last-child label { border-bottom: none; }
+.custom-modal ul li label:hover { background: #f8f8f8; }
+.custom-modal ul li label input[type="checkbox"] {
+  accent-color: #111;
+  width: 14px; height: 14px; cursor: pointer;
 }
 
-.modal input[type="text"]::placeholder {
-    color: #94a3b8;
-}
-
-/* ── Section items / checkboxes ── */
-.modal h3 {
-    font-size: 13px;
-    font-weight: 600;
-    color: #475569;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    margin: 20px 0 10px 0;
-}
-
-.modal ul {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-    max-height: 180px;
-    overflow-y: auto;
-    border: 1.5px solid #e2e8f0;
-    border-radius: 8px;
-    background: #f8fafc;
-}
-
-.modal ul li {
-    padding: 0;
-    border-bottom: 1px solid #e2e8f0;
-}
-
-.modal ul li:last-child {
-    border-bottom: none;
-}
-
-.modal ul li label {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 10px 14px;
-    cursor: pointer;
-    font-size: 13px;
-    color: #334155;
-    transition: background 0.1s;
-}
-
-.modal ul li label:hover {
-    background: #eff6ff;
-}
-
-/* ── Checkbox custom ── */
-.modal input[type="checkbox"] {
-    width: 16px;
-    height: 16px;
-    accent-color: #3b82f6;
-    cursor: pointer;
-    flex-shrink: 0;
-}
-
-/* ── Message d'erreur / info ── */
-.modal .modal-message {
-    font-size: 13px;
-    color: #ef4444;
-    background: #fef2f2;
-    border: 1px solid #fecaca;
-    border-radius: 6px;
-    padding: 8px 12px;
-    margin-bottom: 16px;
-}
-
-.modal .modal-message:empty {
-    display: none;
-}
-
-/* ── Boutons ── */
+/* ── Actions ───────────────────────────────────────── */
 .modal-actions {
-    display: flex;
-    gap: 10px;
-    justify-content: flex-end;
-    margin-top: 24px;
-    padding-top: 16px;
-    border-top: 1px solid #e2e8f0;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 4px;
 }
 
 .btn-annuler {
-    padding: 10px 20px;
-    border: 1.5px solid #e2e8f0;
-    border-radius: 8px;
-    background: #ffffff;
-    color: #64748b;
-    font-size: 14px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: background 0.15s, border-color 0.15s;
+  padding: 8px 16px;
+  border-radius: 7px;
+  border: 1px solid #e5e5e5;
+  background: transparent;
+  color: #888;
+  font-family: inherit;
+  font-size: 0.82rem;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
 }
-
-.btn-annuler:hover {
-    background: #f1f5f9;
-    border-color: #cbd5e1;
-}
+.btn-annuler:hover { background: #f5f5f5; color: #333; }
 
 .btn-submit {
-    padding: 10px 20px;
-    border: none;
-    border-radius: 8px;
-    background: #3b82f6;
-    color: #ffffff;
-    font-size: 14px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: background 0.15s, transform 0.1s;
+  padding: 8px 18px;
+  border-radius: 7px;
+  border: 1px solid #111;
+  background: #111;
+  color: #fff;
+  font-family: inherit;
+  font-size: 0.82rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s;
 }
-
-.btn-submit:hover {
-    background: #2563eb;
-}
-
-.btn-submit:active {
-    transform: scale(0.98);
-}
-
-.btn-submit:disabled {
-    background: #93c5fd;
-    cursor: not-allowed;
-}
-
-/* ── Animations ── */
-@keyframes fadeIn {
-    from { opacity: 0; }
-    to   { opacity: 1; }
-}
-
-@keyframes slideUp {
-    from { opacity: 0; transform: translateY(16px); }
-    to   { opacity: 1; transform: translateY(0);    }
-}
-
-/* ── Scrollbar du modal et de la liste ── */
-.modal::-webkit-scrollbar,
-.modal ul::-webkit-scrollbar {
-    width: 6px;
-}
-
-.modal::-webkit-scrollbar-track,
-.modal ul::-webkit-scrollbar-track {
-    background: #f1f5f9;
-}
-
-.modal::-webkit-scrollbar-thumb,
-.modal ul::-webkit-scrollbar-thumb {
-    background: #cbd5e1;
-    border-radius: 3px;
-}
+.btn-submit:hover { background: #333; border-color: #333; }

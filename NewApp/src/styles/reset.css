@@ -1,0 +1,7 @@
+/* reset.css */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+.reset-widget { display: inline-flex; flex-direction: column; gap: 5px; }
+.reset-step { font-size: 0.78rem; color: #888; }
+.reset-message { font-size: 0.82rem; color: #008000; font-weight: 500; }
