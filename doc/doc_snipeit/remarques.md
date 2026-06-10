@@ -175,6 +175,11 @@ Kits → Create Kit → Update Kit → addItems
 ## transformation objet en tableau 
 object.entries permet de transformer objet en tableau on peut le voir exemple dans acceuil pour nombre categorie ligne 47 à 53
 
+## Entries
+Object.entries(ticket).map(([cle, valeur]) => (
+    <p key={cle}>{cle} : {valeur}</p>
+))
+
 ## transformation String en nombre decimal 
 parseFloat(String(valeur).replace(/[^0-9.]/g, '')) || 0
 

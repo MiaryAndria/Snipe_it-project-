@@ -49,6 +49,7 @@ function Acceuil() {
             setLoading(false)
         }
     }
+    
     const getNombreTickets = async () => {
         if (ticket.length) {
             const result = {}
@@ -99,7 +100,7 @@ function Acceuil() {
             <button onClick={() => navigate('/import')}>Pour faire import</button>
             <ResetData />
             <button onClick={() => navigate('/list/tickets')}>Voir liste des tickets</button>
-            <button onClick={()=>navigate('/couleur/custom')}>Creer couleur</button>
+            <button onClick={()=>navigate('/admin/custom')}>Setting</button>
         </div>
 
     )
