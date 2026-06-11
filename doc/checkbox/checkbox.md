@@ -63,6 +63,18 @@ function ChoixProduits() {
         });
     };
 
+    //String
+    const handleCheckboxKanban = (id) => {
+        const idString = String(id); 
+        setItemSelectionnes(prev => {
+            if (prev.includes(idString)) {
+                return prev.filter(item => item !== idString);
+            } else {
+                return [...prev, idString];
+            }
+        });
+    };
+
     return (
         <div>
             <h3>Sélectionnez les articles à commander :</h3>

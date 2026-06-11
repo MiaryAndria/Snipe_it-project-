@@ -173,7 +173,7 @@ Kits → Create Kit → Update Kit → addItems
 ## Pas de fonction d'export en csv 
 
 ## transformation objet en tableau 
-object.entries permet de transformer objet en tableau on peut le voir exemple dans acceuil pour nombre categorie ligne 47 à 53
+object.entries permet de transformer objet en tableau on peut le voir exemple dans acceuil pour nombre categorie ligne 112 à 116
 
 ## Entries
 Object.entries(ticket).map(([cle, valeur]) => (

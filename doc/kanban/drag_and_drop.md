@@ -1,4 +1,5 @@
 # Documentation Drag and Drop — @hello-pangea/dnd
+hello-pangea/dnd draggable et droppable prend toujours string dcp c'est mieux si on utilise toujours string 
 
 Cette documentation couvre l'ensemble des cas d'usage du Drag and Drop avec la bibliothèque `@hello-pangea/dnd` (fork moderne de `react-beautiful-dnd`).
 
@@ -500,3 +501,71 @@ DragDropContext       → L'arbitre global
 ```
 
 `provided` = la boîte à outils que la librairie te donne pour que chaque zone/carte fonctionne techniquement.
+
+---
+
+## 11. Cas d'Usage : Sélection Multiple et Drag and Drop (Multi-Drag)
+
+**Objectif :** Permettre à l'utilisateur de sélectionner plusieurs éléments (ex: avec Maj+Clic ou Ctrl+Clic) et de les déplacer ensemble vers une autre colonne ou zone.
+
+**Concepts clés avec `@hello-pangea/dnd` :**
+La librairie ne gère pas nativement l'état "sélectionné" (sélection multiple). C'est à vous de maintenir un tableau ou un \`Set\` des IDs sélectionnés dans l'état de votre composant. 
+Lorsque l'utilisateur commence à déplacer un élément, s'il fait partie de la sélection, on déplace toute la sélection. Sinon, on déplace uniquement l'élément en cours de drag.
+
+**Exemple de logique d'implémentation :**
+
+```jsx
+function KanbanMultiDrag() {
+    const [colonnes, setColonnes] = useState({
+        todo: { items: [{ id: "1", nom: "Tâche A" }, { id: "2", nom: "Tâche B" }, { id: "3", nom: "Tâche C" }] },
+        done: { items: [] }
+    });
+    
+    // 1. État pour la sélection multiple
+    const [selection, setSelection] = useState(new Set());
+
+    const toggleSelection = (e, id) => {
+        // e.preventDefault() // Si nécessaire
+        const newSelection = new Set(selection);
+        if (newSelection.has(id)) newSelection.delete(id);
+        else newSelection.add(id);
+        setSelection(newSelection);
+    };
+
+    const onDragEnd = (result) => {
+        const { source, destination, draggableId } = result;
+        if (!destination) return;
+
+        const sourceColId = source.droppableId;
+        const destColId = destination.droppableId;
+
+        // 2. Déterminer les éléments à déplacer (soit la sélection, soit l'élément unique)
+        const estDansSelection = selection.has(draggableId);
+        const elementsADeplacerIds = estDansSelection ? Array.from(selection) : [draggableId];
+
+        // Si on déplace dans la même colonne, la logique est un peu plus complexe (tri groupé),
+        // ici on se concentre sur le déplacement inter-colonnes pour la simplicité.
+        const idsADeplacer = itemSelectionnes.includes(draggableId)
+            ? itemSelectionnes
+            : (draggableId)
+        
+    };
+
+            setTicket(prev =>
+            prev.map(t => idsADeplacer.includes(String(t.id))
+                ? { ...t, status_id: newStatusId }
+                : t
+            )
+        )
+
+        // ... Rendu avec DragDropContext, Droppable, Draggable ...
+    // N'oubliez pas d'ajouter un \`onClick={(e) => toggleSelection(e, item.id)}\` sur la div de vos items
+}
+```
+
+
+> [!TIP]
+> Pour une expérience fluide, ajoutez un style visuel conditionnel sur les `Draggable` (ex: `background: selection.has(item.id) ? "#d4edda" : "#fff"`) afin que l'utilisateur voie clairement ce qui est sélectionné avant de commencer le drag.
+> 
+> Lors du déplacement (pendant le drag), \`@hello-pangea/dnd\` ne déplace visuellement que l'élément saisi. Pour un rendu parfait, vous pouvez masquer les autres éléments sélectionnés pendant le drag, ou afficher un badge (ex: "3 éléments") sur l'élément en cours de drag en utilisant le paramètre \`snapshot.isDragging\`.
+

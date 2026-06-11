@@ -101,7 +101,7 @@ function CustomParams() {
 
     if (loading) return (
         <div className="flex justify-center items-center h-screen">
-            <span className="loading loading-infinity loading-xs" style={{transform: 'scale(0.3)'}}></span>
+            <span className="loading loading-infinity loading-xs" style={{ transform: 'scale(0.3)' }}></span>
         </div>
     )
     return (

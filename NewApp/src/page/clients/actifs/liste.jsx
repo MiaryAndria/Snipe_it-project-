@@ -17,7 +17,7 @@ function ListeActif() {
     const [categorie, setCategorie] = useState([])
     const navigate = useNavigate()
 
-    const getActif = async (categorie, status, compagnie, recherche) => {
+    const getAsset = async (categorie, status, compagnie, recherche) => {
         setLoading(true)
         try {
             const params = {}
@@ -28,14 +28,23 @@ function ListeActif() {
             const response = await api_service.get('/hardware', { params })
             setActif(response.data.rows)
             setLoading(false)
-        } catch (e) { console.log(e) }
+        } catch (e) {
+            console.log(e)
+        }
+    }
+
+    const resetFiltre = async() =>{
+        setSelectedCategorie(null)
+        setSelectedStatus(null)
+        setSelectedCompany(null)
+        setLabelFilter('')
+        await getAsset()
     }
 
     const getStatus = async () => {
         try {
             const response = await api_service.get('/statuslabels')
             setStatus(response.data.rows)
-            setLoading(false)
         } catch (e) { console.log(e); setMessage('Erreur lors récuperation') }
     }
 
@@ -43,7 +52,6 @@ function ListeActif() {
         try {
             const response = await api_service.get('/categories')
             setCategorie(response.data.rows)
-            setLoading(false)
         } catch (e) { console.log(e); setMessage('Erreur lors récuperation') }
     }
 
@@ -51,17 +59,21 @@ function ListeActif() {
         try {
             const response = await api_service.get('/companies')
             setCompagnie(response.data.rows)
-            setLoading(false)
         } catch (e) { console.log(e); setMessage('Erreur lors recuperation') }
     }
 
-    useEffect(() => {
-            getCategorie()
-            getStatus()
-            getCompagnie()
-            getActif(selectedCategorie, selectedStatus, selectedCompany, labelFilter)
+    const init = async () => {
+        setLoading(true)
+        await getCategorie()
+        await getStatus()
+        await getCompagnie()
+        await getAsset()
+        setLoading(false)
+    }
 
-    }, [selectedCategorie, selectedStatus, selectedCompany, labelFilter])
+    useEffect(() => {
+        init()
+    }, [])
 
     let total = 0
     for (const a of actif) {
@@ -94,6 +106,12 @@ function ListeActif() {
                     <option value="">-- Société --</option>
                     {compagnie.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                 </select>
+
+                <button onClick={() => getAsset(selectedCategorie, selectedStatus, selectedCompany, labelFilter)} className="btn btn-square">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-sliders-horizontal-icon lucide-sliders-horizontal"><path d="M10 5H3" /><path d="M12 19H3" /><path d="M14 3v4" /><path d="M16 17v4" /><path d="M21 12h-9" /><path d="M21 19h-5" /><path d="M21 5h-7" /><path d="M8 10v4" /><path d="M8 12H3" /></svg>
+                </button>
+
+                <button onClick={resetFiltre}>Reinitialiser les filtres </button>
             </div>
             <div className="table-wrapper">
                 <table className="data-table">

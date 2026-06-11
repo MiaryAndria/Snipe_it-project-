@@ -101,6 +101,13 @@ Ces routes segment restent disponibles pour compatibilité et usage direct :
 
 ---
 
+### 1.5.1. Remettre un ticket à "New"
+
+- **Route :** `PUT /tickets/:id/reset`
+- **Description :** Raccourci pour remettre le statut d'un ticket à "New" (`status_id = 1`). Utilisé principalement pour annuler ou recommencer le traitement.
+
+---
+
 ### 1.6. Supprimer un ticket
 
 - **Route :** `DELETE /tickets/:id`
@@ -360,6 +367,24 @@ const updateTicketStatus = async () => {
             status_id: selectedStatus  // seul ce champ sera modifié
         })
         setMessage('Statut mis à jour !')
+    } catch (e) {
+        setMessage(`Erreur : ${e.response?.data?.error || e.message}`)
+    } finally {
+        setLoading(false)
+    }
+}
+```
+
+---
+
+### 5.8.1 `PUT /tickets/:id/reset` — Remettre le statut à "New"
+
+```javascript
+const resetTicketStatus = async (ticketId) => {
+    setLoading(true)
+    try {
+        await api_node.put(`/tickets/${ticketId}/reset`)
+        setMessage('Le ticket a été remis à l\'état New !')
     } catch (e) {
         setMessage(`Erreur : ${e.response?.data?.error || e.message}`)
     } finally {
@@ -863,4 +888,241 @@ Cette section détaille les routes permettant de gérer les couleurs disponibles
 | `POST /couleurs` | Crée une couleur → body: `{ "name": "Rouge", "hex_code": "#FF0000" }` |
 | `PUT /couleurs/:id` | Modifie une couleur → body: `{ "name": "Rouge Vif", "hex_code": "#E60000" }` |
 | `DELETE /couleurs/:id` | Supprime une couleur |
+
+---
+
+## 9. Historique des Statuts de Ticket
+
+Cette section détaille les routes permettant de gérer l'historique des changements de statut d'un ticket via la table `t_ticket_statuses`.
+
+### 9.1. CRUD Historique des statuts (`/ticket_history`)
+
+| Route | Description |
+|-------|-------------|
+| `GET /ticket_history` | Liste tout l'historique — supporte **filtres + tri + pagination** combinables |
+| `GET /ticket_history/ticket/:id_ticket` | Historique d'un ticket spécifique — supporte **tri + pagination** |
+| `POST /ticket_history` | Crée une entrée → body: `{ "id_ticket": 1, "id_statuses": 2, "date": "2026-06-11T12:00:00.000Z", "description": "Déplacé vers En cours" }` |
+| `PUT /ticket_history/:id` | Modifie une entrée → body: `{ "id_statuses": 3 }` |
+| `DELETE /ticket_history/:id` | Supprime une entrée |
+
+---
+
+### 9.2. `GET /ticket_history` — Paramètres supportés
+
+Tous les paramètres sont **optionnels et combinables simultanément**.
+
+| Paramètre | Type | Défaut | Description |
+|-----------|------|--------|-------------|
+| `search` | string | — | Texte libre sur `ticket_titre` OU `status_name` |
+| `id_ticket` | integer | — | Filtre par ID de ticket |
+| `id_statuses` | integer | — | Filtre par ID de statut |
+| `sort` | string | `h.date` | Colonne de tri (voir whitelist ci-dessous) |
+| `order` | string | `desc` | Sens du tri : `asc` ou `desc` |
+| `limit` | integer | — | Nombre de résultats (pagination) |
+| `offset` | integer | `0` | Décalage pour la pagination |
+
+**Colonnes de tri autorisées (`sort`) :**
+
+| Valeur `sort` | Colonne SQL réelle |
+|--------------|-------------------|
+| `h.id` | `h.id` |
+| `h.id_ticket` | `h.id_ticket` |
+| `h.id_statuses` | `h.id_statuses` |
+| `h.date` | `h.date` *(défaut)* |
+| `ticket_titre` | `t.titre` |
+| `status_name` | `s.name` |
+
+**Exemples d'appel :**
+```
+GET /ticket_history                                                         → tout l'historique (trié par date desc)
+GET /ticket_history?id_ticket=3                                             → historique du ticket 3
+GET /ticket_history?id_statuses=2                                           → uniquement les passages en statut 2
+GET /ticket_history?search=New                                              → recherche texte sur status_name
+GET /ticket_history?id_ticket=3&sort=h.date&order=asc                      → ticket 3, chronologique
+GET /ticket_history?id_statuses=2&sort=ticket_titre&order=asc              → statut 2, trié par titre
+GET /ticket_history?search=New&sort=h.date&order=desc&limit=10&offset=0    → tout combiné, page 1
+GET /ticket_history?id_ticket=5&id_statuses=1&sort=h.date&order=asc        → ticket 5 + statut 1, chrono
+```
+
+**Réponse de succès :**
+```json
+{
+    "success": true,
+    "data": [
+        {
+            "id": 12,
+            "id_ticket": 3,
+            "id_statuses": 2,
+            "date": "2026-06-11T09:00:00.000Z",
+            "description": "Déplacé vers En cours",
+            "ticket_titre": "Écran HS",
+            "status_name": "In Progress"
+        }
+    ],
+    "total": 42,
+    "offset": 0,
+    "limit": 10
+}
+```
+
+---
+
+### 9.3. `GET /ticket_history/ticket/:id_ticket` — Paramètres supportés
+
+Route raccourci déjà filtrée par ticket. Supporte `sort`, `order`, `limit`, `offset`.
+
+| Paramètre | Type | Défaut | Description |
+|-----------|------|--------|-------------|
+| `sort` | string | `h.date` | `h.id`, `h.id_ticket`, `h.id_statuses`, `h.date`, `status_name` |
+| `order` | string | `desc` | `asc` ou `desc` |
+| `limit` | integer | — | Nombre de résultats |
+| `offset` | integer | `0` | Décalage |
+
+**Exemples :**
+```
+GET /ticket_history/ticket/5                                    → historique du ticket 5 (date desc)
+GET /ticket_history/ticket/5?sort=h.date&order=asc             → chronologique
+GET /ticket_history/ticket/5?sort=status_name&order=asc        → trié par nom de statut
+GET /ticket_history/ticket/5?limit=5&offset=0                  → 5 premiers résultats
+```
+
+---
+
+### 9.4. Exemples d'Intégration Frontend
+
+#### `GET /ticket_history` — Tous les historiques (simple)
+
+```javascript
+const getAllHistory = async () => {
+    setLoading(true)
+    try {
+        const response = await api_node.get('/ticket_history')
+        setHistory(response.data.data)
+        // response.data.total → nombre total d'entrées
+    } catch (e) {
+        setMessage(`Erreur : ${e.response?.data?.error || e.message}`)
+    } finally {
+        setLoading(false)
+    }
+}
+```
+
+#### `GET /ticket_history` — Avec filtres + tri + pagination combinés
+
+```javascript
+const getFilteredHistory = async () => {
+    setLoading(true)
+    try {
+        const params = {}
+        if (searchQuery)      params.search      = searchQuery      // texte libre
+        if (selectedTicket)   params.id_ticket   = selectedTicket   // ID du ticket
+        if (selectedStatuses) params.id_statuses = selectedStatuses // ID du statut
+        if (sortCol)          params.sort        = sortCol          // ex: 'ticket_titre', 'h.date'
+        if (sortDir)          params.order       = sortDir          // 'asc' | 'desc'
+        params.limit  = pageSize          // ex: 10 résultats par page
+        params.offset = page * pageSize   // ex: page 2 → offset 20
+
+        const response = await api_node.get('/ticket_history', { params })
+        setHistory(response.data.data)
+        setTotal(response.data.total)  // total sans pagination → pour le paginator
+    } catch (e) {
+        setMessage(`Erreur : ${e.response?.data?.error || e.message}`)
+    } finally {
+        setLoading(false)
+    }
+}
+```
+
+#### `GET /ticket_history/ticket/:id_ticket` — Historique d'un ticket (avec tri)
+
+```javascript
+const getTicketHistory = async (ticketId, sortCol = 'h.date', sortDir = 'desc') => {
+    setLoading(true)
+    try {
+        const response = await api_node.get(`/ticket_history/ticket/${ticketId}`, {
+            params: { sort: sortCol, order: sortDir }
+        })
+        setHistory(response.data.data)
+    } catch (e) {
+        setMessage(`Erreur : ${e.response?.data?.error || e.message}`)
+    } finally {
+        setLoading(false)
+    }
+}
+```
+
+#### `POST /ticket_history` — Créer une entrée d'historique
+
+**Corps de la requête (JSON) :**
+
+| Champ | Type | Requis | Description |
+|-------|------|--------|-------------|
+| `id_ticket` | integer | ✅ | ID du ticket |
+| `id_statuses` | integer | ✅ | ID du statut destination |
+| `date` | string | — | Date ISO 8601 (défaut : date actuelle) |
+| `description` | string | — | Commentaire / raison du changement (peut être vide) |
+
+```javascript
+const createHistoryEntry = async (ticketId, statusId, date, description) => {
+    setLoading(true)
+    try {
+        await api_node.post('/ticket_history', {
+            id_ticket:   ticketId,
+            id_statuses: statusId,
+            date:        date || new Date().toISOString(), // format ISO 8601
+            description: description || ''                // peut être vide
+        })
+        setMessage('Historique ajouté')
+        await getTicketHistory(ticketId)
+    } catch (e) {
+        setMessage(`Erreur : ${e.response?.data?.error || e.message}`)
+    } finally {
+        setLoading(false)
+    }
+}
+```
+
+**Exemple d'appel depuis le Kanban (après prompt utilisateur) :**
+```javascript
+const date = window.prompt(`Entrez la date du déplacement (ex: ${new Date().toISOString().slice(0, 10)})`)
+if (date === null) return
+
+const description = window.prompt(`Entrez une description pour ce déplacement vers "${statusDestination?.label}"`)
+if (description === null) return
+```
+
+#### `PUT /ticket_history/:id` — Modifier une entrée d'historique
+
+```javascript
+const updateHistoryEntry = async (historyId, newStatusId) => {
+    setLoading(true)
+    try {
+        await api_node.put(`/ticket_history/${historyId}`, {
+            id_statuses: newStatusId
+        })
+        setMessage('Historique mis à jour')
+    } catch (e) {
+        setMessage(`Erreur : ${e.response?.data?.error || e.message}`)
+    } finally {
+        setLoading(false)
+    }
+}
+```
+
+#### `DELETE /ticket_history/:id` — Supprimer une entrée d'historique
+
+```javascript
+const deleteHistoryEntry = async (historyId) => {
+    setLoading(true)
+    try {
+        await api_node.delete(`/ticket_history/${historyId}`)
+        setMessage('Historique supprimé')
+        setHistory(prev => prev.filter(h => h.id !== historyId))
+    } catch (e) {
+        setMessage(`Erreur : ${e.response?.data?.error || e.message}`)
+    } finally {
+        setLoading(false)
+    }
+}
+```
 

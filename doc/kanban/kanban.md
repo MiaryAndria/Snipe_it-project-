@@ -10,18 +10,30 @@ Le composant Kanban affiche les tickets sous forme de cartes réparties dans des
 
 ---
 
-## 2. État du Composant (State)
+## 2. État du Composant (Les States à créer)
 
-| State | Type | Rôle |
-|---|---|---|
-| `ticket` | `array` | Liste globale de tous les tickets |
-| `statuses` | `array` | Statuts disponibles → définissent les colonnes |
-| `kanbanSetting` | `array` | Configuration (libellé traduit, couleur par statut) |
-| `couleur` | `array` | Dictionnaire des couleurs hex disponibles |
-| `priorities` | `array` | Priorités disponibles pour la création |
-| `items` | `array` | Équipements matériels pouvant être liés aux tickets |
+Voici les states (`useState`) nécessaires pour faire fonctionner le composant Kanban (données, gestion du Drag & Drop, et modale) :
 
----
+```jsx
+// 1. Données principales
+const [ticket, setTicket] = useState([])            // Liste de tous les tickets
+const [statuses, setStatuses] = useState([])        // Les statuts (colonnes du Kanban)
+const [kanbanSetting, setKanbanSetting] = useState([]) // Config (couleurs, traductions)
+const [couleur, setCouleur] = useState([])          // Liste des couleurs disponibles
+
+// 2. Données pour le formulaire (Modale)
+const [priorities, setPriorities] = useState([])    // Liste des priorités
+const [items, setItems] = useState([])              // Liste des équipements (Assets)
+
+// 3. Gestion de l'affichage de la Modale
+const [isModalOpen, setIsModalOpen] = useState(false)
+
+// 4. Champs du formulaire de création de ticket
+const [titre, setTitre] = useState('')
+const [description, setDescription] = useState('')
+const [selectedPriority, setSelectedPriority] = useState('')
+const [idsSelectionnes, setIdsSelectionnes] = useState([]) // Équipements cochés
+```
 
 ## 3. Chargement des données
 
@@ -40,18 +52,85 @@ useEffect(() => {
 
 ---
 
-## 4. Structure du Rendu
+## 4. Structure Globale Découpée (Skeleton)
 
-```
-DragDropContext (onDragEnd = onDrag)
-  └── .kanban (flex container)
-        └── Droppable (pour chaque statut)
-              ├── h3 : Nom de la colonne (libellé personnalisé ou nom par défaut)
-              ├── h3 : Compteur de tickets
-              ├── Draggable (pour chaque ticket de la colonne)
-              │     └── Carte : numéro + titre cliquable
-              ├── provided.placeholder
-              └── Bouton "+ Ajouter ticket" (si colonne ID = 1)
+Voici la structure recommandée pour construire le Kanban. C'est une version "découpée" (skeleton) sans les données complexes, qui vous montre exactement **où placer chaque élément**.
+
+```jsx
+return (
+    <div className="kanban-page">
+        {/* 1. Titre de la page */}
+        <h1 className="kanban-page-title">Liste des tickets</h1>
+        
+        {/* 2. Zone du Kanban avec le contexte Drag & Drop */}
+        <DragDropContext onDragEnd={onDrag}>
+            <div className="kanban">
+                
+                {/* 3. Boucle sur les colonnes (statuts) */}
+                {statuses.map(s => (
+                    <Droppable key={s.id} droppableId={String(s.id)}>
+                        {(provided) => (
+                            <div 
+                                ref={provided.innerRef} 
+                                {...provided.droppableProps} 
+                                className="kanban-column"
+                            >
+                                {/* 3a. En-tête de la colonne (Titre et Compteur) */}
+                                <h3>Nom de la colonne</h3>
+                                
+                                {/* 3b. Boucle sur les cartes de cette colonne */}
+                                {ticketsFiltres.map((t, index) => (
+                                    <Draggable key={String(t.id)} draggableId={String(t.id)} index={index}>
+                                        {(provided) => (
+                                            <div
+                                                ref={provided.innerRef}
+                                                {...provided.draggableProps}
+                                                {...provided.dragHandleProps} 
+                                                className="kanban-card"
+                                            >
+                                                {/* Contenu de la carte (ID, Titre, etc.) */}
+                                                <strong>#{t.num_ticket}</strong>
+                                                <p>{t.titre}</p>
+                                            </div>
+                                        )}
+                                    </Draggable>
+                                ))}
+
+                                {/* 3c. Placeholder obligatoire pour react-beautiful-dnd */}
+                                {provided.placeholder}
+
+                                {/* 3d. Bouton d'ajout (généralement dans la première colonne) */}
+                                <button onClick={handleCreateTicket}>+ Ajouter ticket</button>
+
+                            </div>
+                        )}
+                    </Droppable>
+                ))}
+            </div>
+        </DragDropContext>
+
+        {/* 4. Zone Modale (Affichée conditionnellement en superposition) */}
+        {isModalOpen && (
+            <div className="modal-overlay">
+                <form className="custom-modal" onSubmit={ajouterTicket}>
+                    <h2>Créer un ticket</h2>
+                    
+                    {/* Champs du formulaire */}
+                    <div className="modal-field">
+                        <label>Titre</label>
+                        <input type="text" />
+                    </div>
+                    
+                    {/* Actions de la modale */}
+                    <div className="modal-actions">
+                        <button type="button" className="btn-annuler">Annuler</button>
+                        <button type="submit" className="btn-submit">Valider</button>
+                    </div>
+                </form>
+            </div>
+        )}
+    </div>
+)
 ```
 
 ---
@@ -113,194 +192,222 @@ const Couleur = couleur.find(c => c.id === StatusParKanban?.couleur_id)
 
 ---
 
-## 7. Variantes de Kanban
+## 7. Variantes de Drag & Drop (Format Généralisé)
 
-### Variante A : Kanban avec Swimlanes (Lignes horizontales)
+Voici des logiques complètes (State + `onDrag` + Rendu JSX) utilisant des noms génériques (`colonnes`, `items`, `itemDraggable`) pour que vous puissiez les adapter à **n'importe quelle situation** (pas seulement des tickets).
 
-Adapté pour organiser par **utilisateur** ou **équipe** en plus des statuts.
+### Variante A : Drag & Drop avec Recherche et Filtrage
 
-```
-           | À faire | En cours | Terminé |
------------+---------+----------+---------+
-Alice      |  [T1]   |          |  [T3]   |
------------+---------+----------+---------+
-Bob        |         |  [T2]    |         |
-```
-
-**Principe :**
-- 2 niveaux d'imbrication : d'abord les utilisateurs (swimlane), puis les statuts.
-- Chaque intersection est une zone `Droppable` avec un ID composé : `droppableId="alice_todo"`.
+Permet de filtrer visuellement les éléments (par texte ou autre) sans casser le fonctionnement du Drag & Drop.
 
 ```jsx
-{utilisateurs.map(user => (
-    <div key={user.id} style={{ display: "flex" }}>
-        <div style={{ width: "120px", fontWeight: "bold" }}>{user.nom}</div>
-        {statuses.map(s => (
-            <Droppable key={s.id} droppableId={`${user.id}_${s.id}`}>
-                {(provided) => (
-                    <div ref={provided.innerRef} {...provided.droppableProps}
-                         style={{ minWidth: "180px", minHeight: "100px",
-                                  border: "1px solid #ddd", padding: "8px" }}>
-                        {tickets
-                            .filter(t => t.status_id === s.id && t.user_id === user.id)
-                            .map((t, index) => (
-                            <Draggable key={String(t.id)} draggableId={String(t.id)} index={index}>
-                                {(provided) => (
-                                    <div ref={provided.innerRef}
-                                         {...provided.draggableProps}
-                                         {...provided.dragHandleProps}
-                                         style={{ background: "#fff", padding: "6px",
-                                                  ...provided.draggableProps.style }}>
-                                        {t.titre}
-                                    </div>
-                                )}
-                            </Draggable>
-                        ))}
-                        {provided.placeholder}
-                    </div>
-                )}
-            </Droppable>
-        ))}
-    </div>
-))}
-```
+// 1. States
+const [items, setItems] = useState([])       // Les éléments à glisser
+const [colonnes, setColonnes] = useState([]) // Les conteneurs
+const [recherche, setRecherche] = useState('')
 
----
+// 2. Application du filtre (Avant le return)
+const itemsFiltres = items.filter(item => item.nom.toLowerCase().includes(recherche.toLowerCase()))
 
-### Variante B : Kanban avec Priorités (Badges visuels)
+// 3. Fonction onDrag
+const onDrag = async (result) => {
+    const { destination, source, draggableId } = result
+    
+    if (!destination) return
+    if (destination.droppableId === source.droppableId && destination.index === source.index) return
 
-Adapté pour visualiser la criticité d'un coup d'œil. Les cartes ont des couleurs selon leur priorité.
+    const newColonneId = destination.droppableId
 
-```jsx
-const couleurPriorite = {
-    "Critical": "#ff4d4f",
-    "High":     "#fa8c16",
-    "Medium":   "#fadb14",
-    "Low":      "#52c41a"
+    // Mise à jour optimiste sur le state GLOBAL (items), PAS sur les éléments filtrés !
+    setItems(prev => prev.map(item =>
+        String(item.id) === draggableId ? { ...item, colonne_id: newColonneId } : item
+    ))
+
+    // Appel API (si nécessaire)
+    // await api.put(`/items/${draggableId}`, { colonne_id: newColonneId })
 }
 
-// Dans la carte Draggable :
-<div
-    ref={provided.innerRef}
-    {...provided.draggableProps}
-    {...provided.dragHandleProps}
-    style={{
-        borderLeft: `4px solid ${couleurPriorite[t.priority] || "#aaa"}`,
-        padding: "8px",
-        background: "#fff",
-        ...provided.draggableProps.style
-    }}
->
-    <span style={{ fontSize: "10px", color: couleurPriorite[t.priority] }}>
-        ● {t.priority}
-    </span>
-    <p>{t.titre}</p>
-</div>
+// 4. Rendu JSX
+return (
+    <DragDropContext onDragEnd={onDrag}>
+        <div className="kanban">
+            {colonnes.map(colonne => (
+                <Droppable key={colonne.id} droppableId={String(colonne.id)}>
+                    {(provided) => (
+                        <div ref={provided.innerRef} {...provided.droppableProps} className="kanban-column">
+                            <h3>{colonne.titre}</h3>
+                            
+                            {/* On filtre les items pour n'afficher que ceux de cette colonne */}
+                            {itemsFiltres.filter(item => item.colonne_id === String(colonne.id)).map((itemDraggable, index) => (
+                                <Draggable key={String(itemDraggable.id)} draggableId={String(itemDraggable.id)} index={index}>
+                                    {(provided) => (
+                                        <div ref={provided.innerRef} {...provided.draggableProps} {...provided.dragHandleProps} className="kanban-card">
+                                            {itemDraggable.nom}
+                                        </div>
+                                    )}
+                                </Draggable>
+                            ))}
+                            {provided.placeholder}
+                        </div>
+                    )}
+                </Droppable>
+            ))}
+        </div>
+    </DragDropContext>
+)
 ```
 
 ---
 
-### Variante C : Kanban avec Limite WIP (Work In Progress)
+### Variante B : Drag & Drop avec Limite de Capacité (WIP)
 
-Le Kanban professionnel impose une limite maximale de tickets par colonne pour ne pas surcharger l'équipe.
+Bloque le déplacement si la colonne de destination a déjà atteint sa limite maximale.
 
 ```jsx
-const limiteWIP = { 1: 999, 2: 3, 3: 5, 4: 999 }  // ID statut → limite max
+// 1. States
+const [items, setItems] = useState([])
+const [colonnes, setColonnes] = useState([])
 
+// Définition des limites (Format: ID colonne -> Limite max)
+const limitesCapacite = { "col_1": 999, "col_2": 3, "col_3": 5 } 
+
+// 2. Fonction onDrag avec vérification
 const onDrag = async (result) => {
-    const { destination } = result
+    const { destination, source, draggableId } = result
+    
     if (!destination) return
+    if (destination.droppableId === source.droppableId && destination.index === source.index) return
 
-    const newStatusId = parseInt(destination.droppableId)
-    const ticketsDansDestination = ticket.filter(t => t.status_id === newStatusId)
+    const newColonneId = destination.droppableId
+    
+    // Compter le nombre d'éléments DÉJÀ présents dans la destination
+    const itemsDansDestination = items.filter(item => item.colonne_id === newColonneId)
 
-    // Vérification de la limite WIP
-    if (ticketsDansDestination.length >= (limiteWIP[newStatusId] || 999)) {
-        setMessage(`⚠️ Limite WIP atteinte pour cette colonne (max ${limiteWIP[newStatusId]})`)
-        return
+    // Bloquer si la limite est atteinte
+    if (itemsDansDestination.length >= (limitesCapacite[newColonneId] || 999)) {
+        alert("Limite atteinte pour cette colonne !")
+        return // On annule le Drag & Drop
     }
 
-    // ... suite du logic normal
+    // Mise à jour optimiste
+    setItems(prev => prev.map(item =>
+        String(item.id) === draggableId ? { ...item, colonne_id: newColonneId } : item
+    ))
 }
 
-// Affichage de la limite dans l'en-tête de colonne
-<h3>
-    {s.name}
-    <span style={{ fontSize: "12px", color: ticketsFiltres.length >= limiteWIP[s.id] ? "red" : "#999" }}>
-        {ticketsFiltres.length}/{limiteWIP[s.id] || "∞"}
-    </span>
-</h3>
-```
-
----
-
-### Variante D : Kanban avec Recherche et Filtrage par Priorité
-
-```jsx
-const [recherche, setRecherche] = useState('')
-const [filtresPrio, setFiltresPrio] = useState([])
-
-const togglePrio = (p) => setFiltresPrio(prev =>
-    prev.includes(p) ? prev.filter(x => x !== p) : [...prev, p]
+// 3. Rendu JSX
+return (
+    <DragDropContext onDragEnd={onDrag}>
+        <div className="kanban">
+            {colonnes.map(colonne => {
+                const itemsDansColonne = items.filter(item => item.colonne_id === String(colonne.id))
+                
+                return (
+                    <Droppable key={colonne.id} droppableId={String(colonne.id)}>
+                        {(provided) => (
+                            <div ref={provided.innerRef} {...provided.droppableProps} className="kanban-column">
+                                <h3>
+                                    {colonne.titre} 
+                                    <span> ({itemsDansColonne.length} / {limitesCapacite[colonne.id]})</span>
+                                </h3>
+                                
+                                {itemsDansColonne.map((itemDraggable, index) => (
+                                    <Draggable key={String(itemDraggable.id)} draggableId={String(itemDraggable.id)} index={index}>
+                                        {(provided) => (
+                                            <div ref={provided.innerRef} {...provided.draggableProps} {...provided.dragHandleProps} className="kanban-card">
+                                                {itemDraggable.nom}
+                                            </div>
+                                        )}
+                                    </Draggable>
+                                ))}
+                                {provided.placeholder}
+                            </div>
+                        )}
+                    </Droppable>
+                )
+            })}
+        </div>
+    </DragDropContext>
 )
-
-// Filtrage des tickets à l'affichage
-const ticketsFiltres = ticket.filter(t => {
-    const matchTitre = t.titre.toLowerCase().includes(recherche.toLowerCase())
-    const matchPrio  = filtresPrio.length === 0 || filtresPrio.includes(t.priority)
-    return matchTitre && matchPrio
-})
 ```
-
-Puis dans le rendu on remplace `ticket.filter(...)` par :
-```jsx
-const ticketsColonne = ticketsFiltres.filter(t => t.status_id === s.id)
-```
-
-> [!IMPORTANT]
-> Lors du filtrage, le Drag and Drop reste fonctionnel car il opère toujours sur le `ticket` complet (state global), pas sur la liste filtrée.
 
 ---
 
-### Variante E : Kanban Minimal (Sans Backend)
+### Variante C : Drag & Drop Multi-Sélection (Batch Update)
 
-Utile pour un prototype ou un usage purement local (ex: tableau de bord personnel).
+Permet de cocher plusieurs éléments et de les glisser tous en même temps vers un autre conteneur.
 
 ```jsx
-const [colonnes, setColonnes] = useState({
-    "todo":    { titre: "📋 À faire",  couleur: "#e3f2fd", tickets: ["Réunion lundi", "Rapport mensuel"] },
-    "inprog":  { titre: "🔄 En cours", couleur: "#fff3e0", tickets: ["Refactoring API"] },
-    "done":    { titre: "✅ Terminé",   couleur: "#e8f5e9", tickets: ["Mise à jour librairie"] }
-})
+// 1. States
+const [items, setItems] = useState([])
+const [colonnes, setColonnes] = useState([])
+const [idsSelectionnes, setIdsSelectionnes] = useState([]) // Les cases cochées
 
-const onDragEnd = ({ source, destination }) => {
-    if (!destination) return
-    const srcCol  = colonnes[source.droppableId]
-    const dstCol  = colonnes[destination.droppableId]
-    const srcItems = Array.from(srcCol.tickets)
-    const dstItems = source.droppableId === destination.droppableId
-                     ? srcItems : Array.from(dstCol.tickets)
-
-    const [deplace] = srcItems.splice(source.index, 1)
-    dstItems.splice(destination.index, 0, deplace)
-
-    setColonnes(prev => ({
-        ...prev,
-        [source.droppableId]:      { ...srcCol, tickets: srcItems },
-        [destination.droppableId]: { ...dstCol, tickets: dstItems }
-    }))
+// Fonction pour cocher/décocher un élément
+const toggleSelection = (itemId) => {
+    setIdsSelectionnes(prev => 
+        prev.includes(itemId) ? prev.filter(id => id !== itemId) : [...prev, itemId]
+    )
 }
+
+// 2. Fonction onDrag pour le groupe
+const onDrag = async (result) => {
+    const { destination, source, draggableId } = result
+    
+    if (!destination) return
+    if (destination.droppableId === source.droppableId && destination.index === source.index) return
+
+    const newColonneId = destination.droppableId
+
+    // Déterminer la liste des éléments à déplacer 
+    let idsToMove = [draggableId]
+    // Si l'élément glissé fait partie de la sélection, on déplace toute la sélection
+    if (idsSelectionnes.includes(draggableId)) {
+        idsToMove = [...new Set([...idsSelectionnes, draggableId])]
+    }
+
+    // Mise à jour optimiste en bloc
+    setItems(prev => prev.map(item =>
+        idsToMove.includes(String(item.id)) ? { ...item, colonne_id: newColonneId } : item
+    ))
+
+    // Vider la sélection après le déplacement
+    setIdsSelectionnes([])
+}
+
+// 3. Rendu JSX
+return (
+    <DragDropContext onDragEnd={onDrag}>
+        <div className="kanban">
+            {colonnes.map(colonne => (
+                <Droppable key={colonne.id} droppableId={String(colonne.id)}>
+                    {(provided) => (
+                        <div ref={provided.innerRef} {...provided.droppableProps} className="kanban-column">
+                            <h3>{colonne.titre}</h3>
+                            
+                            {items.filter(item => item.colonne_id === String(colonne.id)).map((itemDraggable, index) => (
+                                <Draggable key={String(itemDraggable.id)} draggableId={String(itemDraggable.id)} index={index}>
+                                    {(provided) => (
+                                        <div ref={provided.innerRef} {...provided.draggableProps} {...provided.dragHandleProps} className="kanban-card">
+                                            
+                                            {/* La Checkbox pour la Multi-Sélection */}
+                                            <input 
+                                                type="checkbox" 
+                                                checked={idsSelectionnes.includes(String(itemDraggable.id))}
+                                                onChange={() => toggleSelection(String(itemDraggable.id))} 
+                                            />
+                                            {itemDraggable.nom}
+                                            
+                                        </div>
+                                    )}
+                                </Draggable>
+                            ))}
+                            {provided.placeholder}
+                        </div>
+                    )}
+                </Droppable>
+            ))}
+        </div>
+    </DragDropContext>
+)
 ```
-
----
-
-## 8. Tableau Comparatif des Variantes
-
-| Variante | Points Forts | Cas d'Usage Idéal |
-|---|---|---|
-| Kanban Standard (Projet) | Simple, clair, statuts visuels | Gestion de tickets, bugs |
-| Swimlanes (A) | Vue par utilisateur/équipe | Gestion d'équipe, planning RH |
-| Badges Priorité (B) | Criticité visible immédiatement | Support technique, incidents |
-| WIP Limité (C) | Évite la surcharge, méthode Lean | Équipes Agile/Scrum strictes |
-| Recherche + Filtre (D) | Navigation dans beaucoup de tickets | Grands projets, +50 tickets |
-| Minimal sans Backend (E) | Rapide à mettre en place | Prototype, usage personnel |

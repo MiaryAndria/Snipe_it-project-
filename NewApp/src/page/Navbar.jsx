@@ -3,20 +3,19 @@ import '../styles/global.css'
 import '../styles/navbar.css'
 
 // Routes considérées comme "admin"
-const ADMIN_PATHS = ['/admin', '/admin/acceuil', '/admin/custom', '/list/tickets', '/create/tickets', '/ticket/fiche', '/import']
+const ADMIN_PATHS = ['/admin', '/admin/acceuil', '/admin/custom', '/list/tickets', '/create/tickets', '/ticket/fiche', '/import', '/admin/history']
 
 function Navbar() {
     const navigate = useNavigate()
     const location = useLocation()
 
     const isActive = (path) => location.pathname === path ? 'nav-link active' : 'nav-link'
-
     const isAdminArea = ADMIN_PATHS.some(p => location.pathname.startsWith(p))
 
     return (
         
         <nav className="navbar">
-            <span className="navbar-brand" onClick={() => navigate('/actifs')}>AssetManager</span>
+            <span className="navbar-brand" onClick={() => navigate('/actifs')}>ETU3530</span>
 
             <div className="navbar-links">
                 {isAdminArea ? (

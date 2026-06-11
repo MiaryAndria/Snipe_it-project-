@@ -14,7 +14,6 @@ class ImportService {
         this.usersCache          = {}
     }
 
-
     reset() {
         this.companiesCache      = {}
         this.categoriesCache     = {}
@@ -33,7 +32,7 @@ class ImportService {
 
     cleanCSV(val, defaultValue = '') {
         if (val === null || val === undefined) return defaultValue
-        return val.toString().replace(/["']/g, '').replace(/^[;,\s]+|[;,\s]+$/g, '').trim()
+        return val.toString().replace(/["']/g, '').replace(/^[;,\t|~\s]+|[;,\t|~\s]+$/g, '').trim()
     }
 
     cleanLower(val, defaultValue = '') {
@@ -42,7 +41,7 @@ class ImportService {
 
     cleanNum(val, defaultValue = 0) {
         if (val === null || val === undefined || val === '') return defaultValue
-        let s = val.toString().replace(/["';\s]/g, '')
+        let s = val.toString().replace(/["';\t|~\s]/g, '')
         // Si ça ressemble à un nombre anglais (ex: 1,200 ou 1,200.50), retirer les virgules
         if (/^-?\d{1,3}(,\d{3})+(\.\d+)?$/.test(s)) {
             s = s.replace(/,/g, '')
@@ -73,7 +72,7 @@ class ImportService {
         return ''
     }
 
-    /** Recherche et nettoyage agressif pour les IDENTIFIANTS (asset_tag, serial, model) : supprime guillemets et virgules */
+    /** Recherche et nettoyage agressif pour les IDENTIFIANTS (asset_tag, serial, model) : supprime guillemets et séparateurs */
     getIdVal(row, ...keys) {
         if (!row) return ''
         for (const k of keys) {
@@ -82,7 +81,7 @@ class ImportService {
             )
             if (foundKey && row[foundKey] !== undefined && row[foundKey] !== null) {
                 let val = row[foundKey].toString()
-                return val.replace(/["']/g, '').replace(/,/g, ' ').replace(/\s+/g, ' ').trim()
+                return val.replace(/["']/g, '').replace(/[,;|\t~]/g, ' ').replace(/\s+/g, ' ').trim()
             }
         }
         return ''
@@ -152,6 +151,8 @@ class ImportService {
                 ';':  (sample.match(/;/g)  || []).length,
                 ',':  (sample.match(/,/g)  || []).length,
                 '\t': (sample.match(/\t/g) || []).length,
+                '|':  (sample.match(/\|/g) || []).length,
+                '~':  (sample.match(/~/g)  || []).length,
             }
             sep = Object.keys(counts).reduce((a, b) => counts[a] > counts[b] ? a : b)
             if (counts[sep] === 0) sep = ','
@@ -183,7 +184,7 @@ class ImportService {
 
         // ── En-têtes ─────────────────────────────────────────
         const headers = lines[0].replace(/^\uFEFF/, '').split(sep).map(h =>
-            this.clean(h).replace(/[;,\s]+$/, '')
+            this.clean(h).replace(/[;,\t|~\s]+$/, '')
         )
         const dataLines = lines.slice(1)
 
@@ -584,7 +585,7 @@ class ImportService {
         
         // Extraction super robuste : on récupère tout ce qui n'est PAS un séparateur, un guillemet, un crochet ou un espace
         // Cela gère parfaitement des cas concaténés comme "[""VID-001""]""[""LAP-002""]"
-        const parts = raw.toString().match(/[^"'\[\];,\s]+/g)
+        const parts = raw.toString().match(/[^"'\[\];,\t|~\s]+/g)
         
         if (!parts || parts.length === 0) return '[]'
 
@@ -620,10 +621,8 @@ class ImportService {
         if (rows.length === 0) throw new Error('CSV tickets vide ou invalide')
 
         const headers = Object.keys(rows[0])
-        const requiredTickets = [
-            { name: 'Numéro de Ticket', variations: ['Num_Ticket', 'num_ticket', 'numero ticket', 'num ticket', 'numero', 'num', 'id', 'ticket'] },
-            { name: 'Titre', variations: ['Titre', 'titre', 'title', 'sujet', 'objet', 'nom'] }
-        ]
+        // Suppression des contraintes d'en-tête pour laisser le back-end générer si besoin
+        const requiredTickets = []
         this.checkHeaders(headers, requiredTickets)
 
         console.log(`\n══════════════════════════════════════════`)
@@ -644,28 +643,17 @@ class ImportService {
                     0
                 )
 
-                if (!numTicket || numTicket <= 0) {
-                    console.warn(`[TICKET L${lineNum}] num_ticket invalide, ignoré`)
-                    results.skipped++
-                    results.details.push({ line: lineNum, status: 'SKIP', error: 'num_ticket invalide' })
-                    continue
+                if (numTicket > 0) {
+                    if (seenNumTickets.has(numTicket)) {
+                        console.warn(`[TICKET L${lineNum}] Doublon num_ticket "${numTicket}" ignoré`)
+                        results.skipped++
+                        results.details.push({ line: lineNum, status: 'SKIP', error: 'Doublon num_ticket détecté' })
+                        continue
+                    }
+                    seenNumTickets.add(numTicket)
                 }
-
-                if (seenNumTickets.has(numTicket)) {
-                    console.warn(`[TICKET L${lineNum}] Doublon num_ticket "${numTicket}" ignoré`)
-                    results.skipped++
-                    results.details.push({ line: lineNum, status: 'SKIP', error: 'Doublon num_ticket détecté' })
-                    continue
-                }
-                seenNumTickets.add(numTicket)
 
                 const titre = this.getTextVal(row, 'Titre', 'titre', 'title', 'sujet', 'objet', 'nom')
-                if (!titre) {
-                    console.warn(`[TICKET L${lineNum}] titre vide, ignoré`)
-                    results.skipped++
-                    results.details.push({ line: lineNum, status: 'SKIP', error: 'titre vide' })
-                    continue
-                }
 
                 const dateRaw = this.formatDate(this.getIdVal(row, 'Date', 'date', 'date_ticket', 'date creation')) || ''
                 const heureRaw = this.getIdVal(row, 'Heure', 'heure', 'time', 'hour', 'temps')
@@ -702,10 +690,11 @@ class ImportService {
 
         try {
             const res = await api_import.post('/import/tickets', { tickets: validTickets })
-            results.success = res.data?.count || validTickets.length
+            results.success = res.data?.count !== undefined ? res.data.count : validTickets.length
+            results.skipped += (validTickets.length - results.success)
             results.message = res.data?.message || `${results.success} ticket(s) importé(s)`
             console.log(`[TICKETS] ${results.message}`)
-            if (progressCallback) progressCallback(validTickets.length, validTickets.length)
+            if (progressCallback) progressCallback(results.success, validTickets.length)
         } catch (e) {
             console.error('[TICKETS] Erreur import :', e.response?.data || e.message)
             results.errors += validTickets.length

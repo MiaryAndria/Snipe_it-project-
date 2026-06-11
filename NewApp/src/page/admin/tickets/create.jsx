@@ -37,6 +37,23 @@ function InsertTickets() {
         }
     }
 
+    const createHistoryEntry = async (ticketId, statusId) => {
+        try {
+            await api_ticket.post('/ticket_history', {
+                id_ticket: ticketId,
+                id_statuses: statusId,
+                date: new Date().toISOString().split('T')[0],
+                description: descri || "Aucune description"
+            })
+
+            setMessage('Historique ajouté')
+
+        } catch (e) {
+            console.log(e.response?.data)
+            setMessage(`Erreur : ${e.response?.data?.error || e.message}`)
+        }
+    }
+
     const getItemsDetail = async () => {
         setLoading(true)
         try {
@@ -70,23 +87,24 @@ function InsertTickets() {
     };
 
     const createTicket = async () => {
-        if (!title.trim()) { setMessage('Titre manquant'); return }
-        if (!descri.trim()) { setMessage('Description manquante'); return }
-        if (!selectedPriority) { setMessage('Sélectionnez une priorité'); return }
-        if (component.length === 0) { setMessage('Sélectionnez au moins un item'); return }
-        setLoading(true)
+        const status = 1
         try {
-            await api_ticket.post('/tickets', {
+            const response = await api_ticket.post('/tickets', {
                 num_ticket: Date.now() % 100000,
                 titre: title,
+                status_id: status,
                 description: descri,
                 priority_id: selectedPriority,
                 items: component
             })
+            console.log(response.data)
+            const ticketId = response.data.data.id
+            await createHistoryEntry(ticketId, status)
+
         } catch (e) {
-            console.log(e)
-            setMessage('Erreur lors création ticket')
-        } finally {
+            console.log(e.response?.data)
+        }
+        finally {
             setLoading(false)
         }
         setTitre('')
@@ -108,7 +126,7 @@ function InsertTickets() {
 
     if (loading) return (
         <div className="flex justify-center items-center h-screen">
-            <span className="loading loading-infinity loading-xs" style={{transform: 'scale(0.3)'}}></span>
+            <span className="loading loading-infinity loading-xs" style={{ transform: 'scale(0.3)' }}></span>
         </div>
     )
 
@@ -140,7 +158,7 @@ function InsertTickets() {
                             <li key={item.id}>
                                 <label>
                                     <input type="checkbox" checked={idsSelectionnes.includes(item.id)} onChange={() => handleCheckboxChange(item.id)} />
-                                    {item.name} - {item.asset_tag} (ID: {item.id})
+                                    {item.name} - {item.asset_tag} - {item.assigned_to?.name} (ID: {item.id})
                                 </label>
                             </li>
                         ))}

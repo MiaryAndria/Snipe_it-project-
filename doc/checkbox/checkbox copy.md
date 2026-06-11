@@ -63,6 +63,19 @@ function ChoixProduits() {
         });
     };
 
+    ou aussi 
+    
+        const handleCheckboxChange = (id) => {
+        setIdsSelectionnes(prev => {
+            if (prev.includes(id)) {
+                return prev.filter(item => item !== id);
+            } else {
+                return [...prev, String(id)];
+            }
+        });
+    };
+
+
     return (
         <div>
             <h3>Sélectionnez les articles à commander :</h3>

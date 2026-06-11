@@ -4,5 +4,6 @@ Num_Ticket,Date,Heure,Titre,Description,Status,Priority,Items
 3,04/06/2026,15:45,Test,Asset inconnu,New,Low,"[""PC-999""]"
 4,04/06/2026,15:45,Erreur JSON,Test,New,Low,"[""PC-001"""
 5,04/06/2026,15:45,Pas d'asset,Test,New,Low,"[]"
-6,04/06/2026,15:45,Test priorité,Test,New,SuperUrgent,"[""PC-001""]"
+6,04/06/2026,15:45,Test priorité,Test,New,SuperUrgent,"[""PC-001""]" 
+7
 999999999,04/06/2026,23:59,"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA","Description très longue",Closed,Critical,"[""PC-001""]"

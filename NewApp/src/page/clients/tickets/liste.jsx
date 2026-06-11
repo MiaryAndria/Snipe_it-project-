@@ -18,27 +18,23 @@ function ListeTicket() {
     const [descri, setDescription] = useState('');
     const [loading, setLoading] = useState(true)
     const [statuses, setStatuses] = useState([])
+    const [message, setMessage] = useState([])
     const [kanbanSetting, setKanbanSettings] = useState([])
     const [isModalOpen, setIsModalOpen] = useState(false)
     const navigate = useNavigate()
 
-
     const onDrag = async (result) => {
-
         const { destination, source, draggableId } = result
         if (!destination) return
         if (destination.droppableId == source.droppableId && destination.index == source.index) return
-
         const newStatusId = parseInt(destination.droppableId)
         const statusDestination = statuses.find(s => s.id === newStatusId)
+const date = window.prompt(`Entrez la date du déplacement (ex: 2026-06-11)`)
+if (!date) return
 
-        const reponse = window.prompt(`Entrez l'ID du status destination pour confirmer (attendu: ${statusDestination?.id})`)
-        if (reponse === null) return
-        if (parseInt(reponse) !== statusDestination?.id) {
-            window.alert('ID incorrect, déplacement annulé')
-            return
-        }
-        
+        const description = window.prompt(`Entrez une description pour ce déplacement vers "${statusDestination?.label || statusDestination?.id}"`)
+        if (description === null) return
+
         setTicket(prev =>
             prev.map(t =>
                 String(t.id) === draggableId
@@ -50,9 +46,27 @@ function ListeTicket() {
             await api_ticket.put(`/tickets/${draggableId}`, {
                 status_id: newStatusId
             })
+            await createHistoryEntry(draggableId, newStatusId, date, description)
         } catch (e) {
             console.log(e)
             setMessage('Erreur lors recuperation')
+        }
+    }
+
+    const createHistoryEntry = async (ticketId, statusId, date, description) => {
+        setLoading(true)
+        try {
+            await api_ticket.post('/ticket_history', {
+                id_ticket: ticketId,
+                id_statuses: statusId,
+                date: date ? date.toString() : new Date().toISOString().split('T')[0],
+                description: description || "Aucune description"
+            })
+            setMessage('Historique ajouté')
+        } catch (e) {
+            setMessage(`Erreur : ${e.response?.data?.error || e.message}`)
+        } finally {
+            setLoading(false)
         }
     }
 
@@ -160,34 +174,24 @@ function ListeTicket() {
 
     const ajouterTicket = async (e) => {
         e.preventDefault();
-        if (!title.trim()) {
-            setMessage('Titre manquant')
-            return
-        }
+        const status = 1
+        if (!title.trim()) { setMessage('Titre manquant'); return }
+        if (!descri.trim()) { setMessage('Description manquante'); return }
+        if (!selectedPriority) { setMessage('Sélectionnez une priorité'); return }
+        if (component.length === 0) { setMessage('Sélectionnez au moins un item'); return }
 
-        if (!descri.trim()) {
-            setMessage('Description manquante')
-            return
-        }
-
-        if (!selectedPriority) {
-            setMessage('Sélectionnez une priorité')
-            return
-        }
-
-        if (component.length === 0) {
-            setMessage('Sélectionnez au moins un item')
-            return
-        }
         setLoading(true)
         try {
-            await api_ticket.post('/tickets', {
+            const response = await api_ticket.post('/tickets', {
                 num_ticket: Date.now() % 100000,
                 titre: title,
+                status_id: status,
                 description: descri,
                 priority_id: selectedPriority,
                 items: component
             })
+            const id = response.data.data.id
+            await createHistoryEntry(id, status)
         } catch (e) {
             console.log(e)
             setMessage('Erreur lors création ticket')
@@ -249,6 +253,7 @@ function ListeTicket() {
                         const StatusParKanban = kanbanSetting.find(k => k.status_id === s.id)
                         const Couleur = couleur.find(c => c.id === StatusParKanban?.couleur_id)
                         const ticketFiltrer = ticket.filter(t => t.status_id === s.id)
+
                         return (
                             <Droppable key={s.id} droppableId={String(s.id)}>
                                 {(provided) => (
@@ -272,15 +277,15 @@ function ListeTicket() {
                                                     </div>
                                                 )}
                                             </Draggable>
+
                                         ))}
 
                                         {provided.placeholder}
 
-                                        {s.id === 1 && (
-                                            <button onClick={handleCreateTicket}>
-                                                + Ajouter ticket
-                                            </button>
+                                        {s.name === 'New' && (
+                                            <button onClick={handleCreateTicket}>+ Ajouter ticket</button>
                                         )}
+
                                     </div>
                                 )}
                             </Droppable>
@@ -320,7 +325,7 @@ function ListeTicket() {
                                         <label>
                                             <input type="checkbox" checked={idsSelectionnes.includes(item.id)}
                                                 onChange={() => handleCheckboxChange(item.id)} />
-                                            {item.name} - {item.asset_tag} (ID: {item.id})
+                                            {item.name} - {item.asset_tag} - {item.assigned_to?.name} (ID: {item.id})
                                         </label>
                                     </li>
                                 ))}
@@ -338,6 +343,3 @@ function ListeTicket() {
     )
 }
 export default ListeTicket
-
-
-

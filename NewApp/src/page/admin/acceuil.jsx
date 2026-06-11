@@ -120,7 +120,6 @@ function Acceuil() {
             <div className="acceuil-actions">
                 <ResetData />
             </div>
-
             <p className="msg">{message}</p>
         </div>
     )
