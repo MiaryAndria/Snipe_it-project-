@@ -58,7 +58,7 @@ function CustomParams() {
             }
         } else {
             try {
-                await api_ticket.put(`/kanban_settings/${statusFiltrer.id}`, {
+                await api_ticket.put(`/kanban_settings/${kanbanExiste.id}`, {
                     couleur_id: colorId,
                     label_traduction: traductionLabel
                 })

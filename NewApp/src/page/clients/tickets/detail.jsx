@@ -10,7 +10,7 @@ function DetailTicket() {
 
     const getDetailTicket = async () => {
         try {
-            const response = await api_ticket.get(`/ticketDetail/${id}`)
+            const response = await api_ticket.get(`/tickets/${id}`)
             setTicketDetail(response.data.data)
             setLoading(false)
         } catch (e) { console.log(e) }

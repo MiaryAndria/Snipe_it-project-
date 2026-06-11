@@ -3,7 +3,8 @@ import '../styles/global.css'
 import '../styles/navbar.css'
 
 // Routes considérées comme "admin"
-const ADMIN_PATHS = ['/admin', '/admin/acceuil', '/admin/custom', '/list/tickets', '/create/tickets', '/ticket/fiche', '/import', '/admin/history']
+// const ADMIN_PATHS = ['/admin', '/admin/acceuil', '/admin/custom', '/list/tickets', '/create/tickets', '/ticket/fiche', '/import', '/admin/history']
+const ADMIN_PATHS = ['/admin', '/admin/acceuil', '/admin/custom', '/list/tickets', '/create/tickets', '/ticket/fiche', '/import']
 
 function Navbar() {
     const navigate = useNavigate()
