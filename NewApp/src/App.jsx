@@ -8,6 +8,7 @@ import ListeTickets from './page/admin/tickets/liste'
 import InsertTickets from './page/admin/tickets/create'
 import ListeTicket from './page/clients/tickets/liste'
 import CustomParams from './page/admin/config/create'
+import Cout from './page/admin/cout'
 import Navbar from './page/Navbar'
 import './styles/global.css'
 
@@ -17,17 +18,18 @@ function App() {
       <Navbar />
       <main className="main-content">
         <Routes>
-          <Route path="/" element={<ListeActif/>} />
-          <Route path="/import" element={<ImportData/>} />
-          <Route path="/admin/acceuil" element={<Acceuil/>} />
-          <Route path="/admin" element={<LoginAdmin/>} />
-          <Route path="/actifs" element={<ListeActif/>} />
-          <Route path="/liste/tickets" element={<ListeTicket/>} />
-          <Route path="/detail/ticket/:id" element={<DetailTicket/>} />
-          <Route path="/create/tickets" element={<InsertTickets/>} />
-          <Route path="/list/tickets" element={<ListeTickets/>} />
-          <Route path="/ticket/fiche/:id" element={<DetailTicket/>} />
-          <Route path="/admin/custom" element={<CustomParams/>} />
+          <Route path="/" element={<ListeActif />} />
+          <Route path="/import" element={<ImportData />} />
+          <Route path="/admin/acceuil" element={<Acceuil />} />
+          <Route path="/admin" element={<LoginAdmin />} />
+          <Route path="/actifs" element={<ListeActif />} />
+          <Route path="/liste/tickets" element={<ListeTicket />} />
+          <Route path="/detail/ticket/:id" element={<DetailTicket />} />
+          <Route path="/create/tickets" element={<InsertTickets />} />
+          <Route path="/list/tickets" element={<ListeTickets />} />
+          <Route path="/ticket/fiche/:id" element={<DetailTicket />} />
+          <Route path="/admin/custom" element={<CustomParams />} />
+          <Route path="/admin/cout" element={<Cout />} />
         </Routes>
       </main>
     </div>

@@ -1,0 +1,69 @@
+/* cout.css — tableau minimaliste */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+.cout-page {
+  padding: 32px;
+  max-width: 680px;
+  margin: 0 auto;
+}
+
+.cout-error {
+  font-size: 0.82rem;
+  color: #c0392b;
+  margin-bottom: 16px;
+}
+
+/* Tableau */
+.cout-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+}
+
+.cout-table thead tr {
+  border-bottom: 2px solid #e5e5e5;
+}
+
+.cout-table th {
+  text-align: left;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #999;
+  padding: 0 0 10px 0;
+}
+
+.cout-table th:last-child,
+.cout-table td:last-child {
+  text-align: right;
+}
+
+.cout-table tbody tr {
+  border-bottom: 1px solid #f2f2f2;
+  transition: background 0.15s;
+}
+
+.cout-table tbody tr:last-child {
+  border-bottom: none;
+}
+
+.cout-table tbody tr:hover {
+  background: #fafafa;
+}
+
+.cout-table td {
+  padding: 12px 0;
+  color: #222;
+}
+
+.cout-table td:first-child {
+  font-weight: 500;
+}
+
+.cout-table td:last-child {
+  font-variant-numeric: tabular-nums;
+  color: #555;
+}

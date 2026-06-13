@@ -24,6 +24,7 @@ function Navbar() {
                         <button className={isActive('/list/tickets')} onClick={() => navigate('/list/tickets')}>Liste tickets</button>
                         <button className={isActive('/admin/custom')} onClick={() => navigate('/admin/custom')}>Settings</button>
                         <button className={isActive('/import')} onClick={() => navigate('/import')}>Import</button>
+                        <button className={isActive('/admin/cout')} onClick={() => navigate('/admin/cout')}>Suivi des couts</button>
                     </>
                 ) : (
                     <>

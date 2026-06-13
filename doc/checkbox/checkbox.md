@@ -64,7 +64,7 @@ function ChoixProduits() {
     };
 
     //String
-    const handleCheckboxKanban = (id) => {
+    const handleCheckboxChange = (id) => {
         const idString = String(id); 
         setItemSelectionnes(prev => {
             if (prev.includes(idString)) {

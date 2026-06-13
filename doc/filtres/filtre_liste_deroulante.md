@@ -48,7 +48,7 @@ function GestionListe() {
      3. Calculs des listes filtrées (Derived State / États Dérivés)
      Ces listes se mettent à jour automatiquement à chaque rendu, sans besoin de useState !
     
-     Filtre A : Uniquement les éléments au statut "actif"
+    Filtre A : Uniquement les éléments au statut "actif"
     const itemsActifs = items.filter(item => item.status === 'active');
 
      Filtre B : Uniquement les éléments au statut "inactif"

@@ -1126,3 +1126,92 @@ const deleteHistoryEntry = async (historyId) => {
 }
 ```
 
+---
+
+## 10. Gestion des Coûts (t_ticket_cout)
+
+Cette section détaille les routes permettant de gérer les coûts associés aux tickets via la table `t_ticket_cout`.
+
+### 10.1. CRUD Coûts (`/ticket_cout`)
+
+| Route | Description |
+|-------|-------------|
+| `GET /ticket_cout` | Liste tous les coûts (optionnel : filtrer par `?id_ticket=X`) |
+| `POST /ticket_cout` | Ajoute un coût → body: `{ "id_ticket": 1, "cout": 150.5 }` |
+| `PUT /ticket_cout/:id` | Modifie un coût existant → body: `{ "cout": 200 }` |
+| `DELETE /ticket_cout/:id` | Supprime un coût |
+
+### 10.2. Exemples d'Intégration Frontend
+
+#### `GET /ticket_cout` — Récupérer les coûts (pour un ticket)
+
+```javascript
+const getTicketCouts = async (ticketId) => {
+    setLoading(true)
+    try {
+        const response = await api_node.get(`/ticket_cout`, {
+            params: { id_ticket: ticketId }
+        })
+        setCouts(response.data.data)
+    } catch (e) {
+        setMessage(`Erreur : ${e.response?.data?.error || e.message}`)
+    } finally {
+        setLoading(false)
+    }
+}
+```
+
+#### `POST /ticket_cout` — Ajouter un coût
+
+```javascript
+const addTicketCout = async (ticketId, montant) => {
+    setLoading(true)
+    try {
+        await api_node.post('/ticket_cout', {
+            id_ticket: ticketId,
+            cout: montant
+        })
+        setMessage('Coût ajouté avec succès')
+        await getTicketCouts(ticketId) // Rafraîchir
+    } catch (e) {
+        setMessage(`Erreur : ${e.response?.data?.error || e.message}`)
+    } finally {
+        setLoading(false)
+    }
+}
+```
+
+#### `PUT /ticket_cout/:id` — Modifier un coût
+
+```javascript
+const updateTicketCout = async (coutId, nouveauMontant) => {
+    setLoading(true)
+    try {
+        await api_node.put(`/ticket_cout/${coutId}`, {
+            cout: nouveauMontant
+        })
+        setMessage('Coût mis à jour')
+    } catch (e) {
+        setMessage(`Erreur : ${e.response?.data?.error || e.message}`)
+    } finally {
+        setLoading(false)
+    }
+}
+```
+
+#### `DELETE /ticket_cout/:id` — Supprimer un coût
+
+```javascript
+const deleteTicketCout = async (coutId) => {
+    setLoading(true)
+    try {
+        await api_node.delete(`/ticket_cout/${coutId}`)
+        setMessage('Coût supprimé')
+        setCouts(prev => prev.filter(c => c.id !== coutId))
+    } catch (e) {
+        setMessage(`Erreur : ${e.response?.data?.error || e.message}`)
+    } finally {
+        setLoading(false)
+    }
+}
+```

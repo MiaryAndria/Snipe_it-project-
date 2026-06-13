@@ -551,9 +551,9 @@ function KanbanMultiDrag() {
         
     };
 
-            setTicket(prev =>
-            prev.map(t => idsADeplacer.includes(String(t.id))
-                ? { ...t, status_id: newStatusId }
+            setContent(prev =>
+            prev.map(c => idsADeplacer.includes(String(c.id))
+                ? { ...t, valeur: nouvelleValeur }
                 : t
             )
         )

@@ -6,22 +6,35 @@ import api_service from "../../../api/api_service"
 import './kanbanstyle.css'
 import './modal.css'
 import '../../../styles/global.css'
+
 function ListeTicket() {
     const [ticket, setTicket] = useState([])
-    const [priorities, setPriority] = useState([])
     const [items, setItems] = useState([]);
-    const [title, setTitre] = useState('');
     const [couleur, setCouleur] = useState([]);
-    const [selectedPriority, setSelectedPriority] = useState('');
-    const [idsSelectionnes, setIdsSelectionnes] = useState([]);
-    const [component, setComponent] = useState([])
-    const [descri, setDescription] = useState('');
     const [loading, setLoading] = useState(true)
     const [statuses, setStatuses] = useState([])
     const [message, setMessage] = useState([])
+    const [pendingDrag, setPendingDrag] = useState({})
+    const [category, setCategory] = useState([])
+    const [isModalProcess, setIsModalProcess] = useState(false)
+    const [isModalReouverture, setIsModalReouverture] = useState(false)
+    const [isModalAnnulation, setIsModalAnnulation] = useState(false)
     const [kanbanSetting, setKanbanSettings] = useState([])
-    const [isModalOpen, setIsModalOpen] = useState(false)
+    const [prixReouverture, setPrixReouverture] = useState('')
+    const [ticketCout, setTicketCout] = useState([])
+    const [dateModal, setDateModal] = useState('')
+    const [descriptionModal, setDescriptionModal] = useState('')
     const navigate = useNavigate()
+
+    const getTicketCout = async () => {
+        try {
+            const response = await api_ticket.get(`/ticket_cout`)
+            setTicketCout(response.data.data)
+        } catch (e) {
+            setMessage(`Erreur : ${e.response?.data?.error || e.message}`)
+            console.log(ticketCout)
+        }
+    }
 
     const onDrag = async (result) => {
         const { destination, source, draggableId } = result
@@ -29,27 +42,205 @@ function ListeTicket() {
         if (destination.droppableId == source.droppableId && destination.index == source.index) return
         const newStatusId = parseInt(destination.droppableId)
         const statusDestination = statuses.find(s => s.id === newStatusId)
-const date = window.prompt(`Entrez la date du déplacement (ex: 2026-06-11)`)
-if (!date) return
 
-        const description = window.prompt(`Entrez une description pour ce déplacement vers "${statusDestination?.label || statusDestination?.id}"`)
-        if (description === null) return
+        if (parseInt(destination.droppableId) === 3) {
+            const description = window.prompt(`Entrer description`)
+            if (!description) return
 
-        setTicket(prev =>
-            prev.map(t =>
-                String(t.id) === draggableId
-                    ? { ...t, status_id: newStatusId }
-                    : t
+            const date = window.prompt(`Entrez la date du déplacement (ex: 2026-06-11)`)
+            if (!date) return
+            const cout = window.prompt('Inserer cout pour avoir terminer')
+            if (cout === null) return
+
+            let categoriesArray = []
+            const draggedTicket = ticket.find(t => String(t.id) === draggableId);
+            if (draggedTicket && draggedTicket.items && draggedTicket.items.length > 0) {
+                draggedTicket.items.forEach(tag => {
+                    const assetTag = typeof tag === 'string' ? tag : tag.asset_tag;
+                    const hardwareItem = items.find(i => i.asset_tag === assetTag);
+                    if (hardwareItem && hardwareItem.category && hardwareItem.category.name) {
+                        categoriesArray.push(hardwareItem.category.name);
+                    } else {
+                        categoriesArray.push("Non catégorisé");
+                    }
+                });
+            } else {
+                categoriesArray = ["Aucune catégorie"];
+            }
+
+            setTicket(prev =>
+                prev.map(t =>
+                    String(t.id) === draggableId
+                        ? { ...t, status_id: newStatusId }
+                        : t
+                )
             )
-        )
+            try {
+                await api_ticket.put(`/tickets/${draggableId}`, {
+                    status_id: newStatusId
+                })
+                await createHistoryEntry(draggableId, newStatusId, date, description)
+                await addTicketCout(draggableId, cout, categoriesArray)
+            } catch (e) {
+                console.log(e)
+                setMessage('Erreur lors recuperation')
+            }
+
+        } else if (parseInt(destination.droppableId) === 2) {
+            let categoriesArray = [];
+            const draggedTicket = ticket.find(t => String(t.id) === draggableId);
+            if (draggedTicket && draggedTicket.items && draggedTicket.items.length > 0) {
+                draggedTicket.items.forEach(tag => {
+                    const assetTag = typeof tag === 'string' ? tag : tag.asset_tag;
+                    const hardwareItem = items.find(i => i.asset_tag === assetTag);
+                    if (hardwareItem && hardwareItem.category && hardwareItem.category.name) {
+                        categoriesArray.push(hardwareItem.category.name);
+                    } else {
+                        categoriesArray.push("Non catégorisé");
+                    }
+                });
+            } else {
+                categoriesArray = ["Aucune catégorie"];
+            }
+
+            const ticketId = parseInt(draggableId)
+            const newStatusId = parseInt(destination.droppableId)
+            setPendingDrag({ ticketId, newStatusId })
+            setCategory(categoriesArray)
+            setIsModalProcess(true)
+
+        } else {
+            const date = window.prompt(`Entrez la date du déplacement (ex: 2026-06-11)`)
+            if (!date) return
+
+            const description = window.prompt(`Entrez une description pour ce déplacement vers "${statusDestination?.label || statusDestination?.id}"`)
+            if (description === null) return
+
+            setTicket(prev =>
+                prev.map(t =>
+                    String(t.id) === draggableId
+                        ? { ...t, status_id: newStatusId }
+                        : t
+                )
+            )
+            try {
+                await api_ticket.put(`/tickets/${draggableId}`, {
+                    status_id: newStatusId
+                })
+                await createHistoryEntry(draggableId, newStatusId, date, description)
+            } catch (e) {
+                console.log(e)
+                setMessage('Erreur lors recuperation')
+            }
+        }
+    }
+
+    const confirmerReouverture = async () => {
         try {
-            await api_ticket.put(`/tickets/${draggableId}`, {
-                status_id: newStatusId
+            setTicket(prev =>
+                prev.map(t =>
+                    t.id === pendingDrag.ticketId
+                        ? { ...t, status_id: pendingDrag.newStatusId }
+                        : t
+                )
+            )
+            await api_ticket.put(`/tickets/${pendingDrag.ticketId}`, {
+                status_id: pendingDrag.newStatusId
             })
-            await createHistoryEntry(draggableId, newStatusId, date, description)
+
+            let dernierPrix = 0
+            for (const cat of category) {
+                const dernierTicket = ticketCout.filter(t => t.categorie === cat)
+                const dernierCategorie = dernierTicket[dernierTicket.length - 1]
+                dernierPrix = dernierCategorie ? Number(dernierCategorie.cout) : 0
+            }
+
+            const cout = dernierPrix + Number(prixReouverture)
+            await createHistoryEntry(pendingDrag.ticketId, pendingDrag.newStatusId, dateModal, descriptionModal)
+            await addTicketCout(pendingDrag.ticketId, cout, category)
         } catch (e) {
             console.log(e)
-            setMessage('Erreur lors recuperation')
+        }
+        setIsModalReouverture(false)
+    }
+
+    const confirmerAnnulation = async () => {
+        try {
+            setTicket(prev =>
+                prev.map(t =>
+                    t.id === pendingDrag.ticketId
+                        ? { ...t, status_id: pendingDrag.newStatusId }
+                        : t
+                )
+            )
+            await api_ticket.put(`/tickets/${pendingDrag.ticketId}`, {
+                status_id: pendingDrag.newStatusId
+            })
+
+            let dernierPrix = 0
+            for (const cat of category) {
+                const dernierCategorie = ticketCout.filter(t => t.categorie === cat)
+                const Prix = dernierCategorie[dernierCategorie.length - 1]
+                dernierPrix = Prix ? Number(Prix.cout) : 0
+            }
+
+            const cout = dernierPrix - dernierPrix
+            console.log(cout)
+            await createHistoryEntry(pendingDrag.ticketId, pendingDrag.newStatusId, dateModal, descriptionModal)
+            await addTicketCout(pendingDrag.ticketId, cout, category)
+        } catch (e) {
+            console.log(e)
+        }
+        setIsModalAnnulation(false)
+    }
+
+    const handleModalReouverture = async () => {
+        setIsModalReouverture(true)
+        setIsModalProcess(false)
+    }
+
+    const handleModalAnnulation = async () => {
+        setIsModalAnnulation(true)
+        setIsModalProcess(false)
+    }
+
+    const annuler = async () => {
+        setIsModalProcess(false)
+        setIsModalAnnulation(false)
+        setIsModalReouverture(false)
+        setPendingDrag(null)
+    }
+
+    const addTicketCout = async (ticketId, montantTotal, categoriesArray) => {
+        setLoading(true)
+        let montantDivise = 0
+        try {
+            if (montantTotal === 0) {
+                montantDivise = 0
+            }
+            montantDivise = Number(montantTotal) / categoriesArray.length
+            for (const cat of categoriesArray) {
+                const searchCat = ticketCout.find(
+                    tc => tc.categorie === cat && tc.id_ticket === ticketId
+                )
+                if (!searchCat) {
+                    await api_ticket.post('/ticket_cout', {
+                        id_ticket: ticketId,
+                        cout: montantDivise,
+                        categorie: cat
+                    })
+                } else {
+                    await api_ticket.put(`/ticket_cout/${searchCat.id}`, {
+                        cout: montantDivise
+                    })
+                }
+            }
+            await getTicketCout()
+            setMessage('Coût ajouté avec succès')
+        } catch (e) {
+            setMessage(`Erreur : ${e.response?.data?.error || e.message}`)
+        } finally {
+            setLoading(false)
         }
     }
 
@@ -100,18 +291,6 @@ if (!date) return
             console.log(e)
             setMessage('Erreur lors recuperation')
         }
-
-    }
-
-    const getPriorities = async () => {
-        try {
-            const response = await api_ticket.get('/priorities')
-            setPriority(response.data.data)
-            setLoading(false)
-        } catch (e) {
-            console.log(e)
-            setMessage('Erreur lors recuperation')
-        }
     }
 
     const getItems = async () => {
@@ -137,106 +316,16 @@ if (!date) return
         }
     }
 
-    const getItemsDetail = async () => {
-        setLoading(true)
-        try {
-            const result = []
-            for (const id of idsSelectionnes) {
-                if (!id) return
-                const response = await api_service.get(`/hardware/${id}`)
-                const itemDetail = response.data
-                // const contentOfComponent = {
-                //     id: itemDetail.id,
-                //     asset_tag: itemDetail.asset_tag,
-                //     name: itemDetail.name
-                // }
-                const contentOfComponent = itemDetail.asset_tag
-                result.push(contentOfComponent)
-            }
-            setComponent(result)
-        } catch (e) {
-            console.log(e)
-            setMessage('Erreur lors recuperation')
-        } finally {
-            setLoading(false)
-        }
-    }
-
-    const handleCheckboxChange = (id) => {
-        setIdsSelectionnes(prev => {
-            if (prev.includes(id)) {
-                return prev.filter(item => item !== id);
-            } else {
-                return [...prev, id];
-            }
-        });
-    };
-
-    const ajouterTicket = async (e) => {
-        e.preventDefault();
-        const status = 1
-        if (!title.trim()) { setMessage('Titre manquant'); return }
-        if (!descri.trim()) { setMessage('Description manquante'); return }
-        if (!selectedPriority) { setMessage('Sélectionnez une priorité'); return }
-        if (component.length === 0) { setMessage('Sélectionnez au moins un item'); return }
-
-        setLoading(true)
-        try {
-            const response = await api_ticket.post('/tickets', {
-                num_ticket: Date.now() % 100000,
-                titre: title,
-                status_id: status,
-                description: descri,
-                priority_id: selectedPriority,
-                items: component
-            })
-            const id = response.data.data.id
-            await createHistoryEntry(id, status)
-        } catch (e) {
-            console.log(e)
-            setMessage('Erreur lors création ticket')
-        }
-        finally {
-            setLoading(false)
-        }
-
-        setIsModalOpen(false);
-        setTitre('')
-        setDescription('')
-        setSelectedPriority('')
-        setIdsSelectionnes([])
-        setComponent([])
-        await getTicket()
-    }
-
-    const handleCreateTicket = async () => {
-        setIsModalOpen(true)
-    }
-
-    const annulerValidation = () => {
-        setIsModalOpen(false);
-        setTitre('')
-        setDescription('')
-        setSelectedPriority('')
-        setIdsSelectionnes([])
-        setComponent([])
-    };
-
     useEffect(() => {
-        if (idsSelectionnes.length > 0) {
-            getItemsDetail()
-        } else {
-            setComponent([])
+        const init = async () => {
+            getAllKanbanSetting()
+            getItems()
+            getTicket()
+            getCouleur()
+            getStatuses()
+            getTicketCout()
         }
-    }, [idsSelectionnes])
-
-    useEffect(() => {
-        getPriorities()
-        getAllKanbanSetting()
-        getItems()
-        getTicket()
-        getCouleur()
-        getStatuses()
+        init()
     }, [])
 
     if (loading) return (
@@ -244,6 +333,7 @@ if (!date) return
             <span className="loading loading-infinity loading-xs" style={{ transform: 'scale(0.3)' }}></span>
         </div>
     )
+
     return (
         <div className="kanban-page">
             <h1 className="kanban-page-title">Liste des tickets</h1>
@@ -257,17 +347,17 @@ if (!date) return
                         return (
                             <Droppable key={s.id} droppableId={String(s.id)}>
                                 {(provided) => (
-                                    <div ref={provided.innerRef}{...provided.droppableProps} className="kanban-column"
+                                    <div ref={provided.innerRef} {...provided.droppableProps} className="kanban-column"
                                         style={{ backgroundColor: Couleur?.hex_code }}>
                                         <h3>{StatusParKanban?.label_traduction || s.name}</h3>
                                         <h3>{ticketFiltrer.length}</h3>
 
-                                        {/* Cartes draggables */}
                                         {ticketFiltrer.map((t, index) => (
                                             <Draggable key={String(t.id)} draggableId={String(t.id)} index={index}>
                                                 {(provided) => (
                                                     <div
-                                                        ref={provided.innerRef}{...provided.draggableProps}{...provided.dragHandleProps} className="kanban-card"
+                                                        ref={provided.innerRef} {...provided.draggableProps} {...provided.dragHandleProps}
+                                                        className="kanban-card"
                                                         style={{ ...provided.draggableProps.style }}
                                                     >
                                                         <strong>#{t.num_ticket}</strong>
@@ -277,15 +367,10 @@ if (!date) return
                                                     </div>
                                                 )}
                                             </Draggable>
-
                                         ))}
 
                                         {provided.placeholder}
-
-                                        {s.name === 'New' && (
-                                            <button onClick={handleCreateTicket}>+ Ajouter ticket</button>
-                                        )}
-
+                                        {s.id === 1 && <button onClick={()=>navigate("/create/tickets")}>Creer ticket</button>}
                                     </div>
                                 )}
                             </Droppable>
@@ -294,52 +379,33 @@ if (!date) return
                 </div>
             </DragDropContext>
 
-            {isModalOpen && (
-                <div className="modal-overlay">
-                    <form className="custom-modal" onSubmit={ajouterTicket}>
-                        <h2>Créer un ticket</h2>
-                        <div>
-                            <div className="modal-field">
-                                <label>Titre</label>
-                                <input type="text" onChange={(e) => setTitre(e.target.value)} placeholder='Titre problème' />
-                            </div>
-                            <div className="modal-field">
-                                <label>Description</label>
-                                <input type="text" onChange={(e) => setDescription(e.target.value)} placeholder='Description' />
-                            </div>
+            {isModalProcess && (
+                <div>
+                    <p>Choisissez action que vous voulez faire</p>
+                    <button onClick={handleModalReouverture}>Reouverture</button>
+                    <button onClick={handleModalAnnulation}>Annulation</button>
+                    <button onClick={annuler}>Annuler</button>
+                </div>
+            )}
 
-                            <div className="modal-field">
-                                <label>Priorité</label>
-                                <select value={selectedPriority} onChange={(e) => setSelectedPriority(e.target.value)}>
-                                    <option value="">-- Choisir --</option>
-                                    {priorities.map(p => (
-                                        <option key={p.id} value={p.id}>{p.name}</option>
-                                    ))}
-                                </select>
-                            </div>
+            {isModalReouverture && (
+                <div>
+                    <input type='text' onChange={(e) => setPrixReouverture(e.target.value)} placeholder="Inserer montant" />
+                    <input type="date" onChange={(e) => setDateModal(e.target.value)} />
+                    <input type="text" onChange={(e) => setDescriptionModal(e.target.value)} placeholder="Description" />
+                    <button onClick={confirmerReouverture}>Confirmer</button>
+                </div>
+            )}
 
-                            <h3>Items à ajouter</h3>
-                            <ul>
-                                {items.map(item => (
-                                    <li key={item.id}>
-                                        <label>
-                                            <input type="checkbox" checked={idsSelectionnes.includes(item.id)}
-                                                onChange={() => handleCheckboxChange(item.id)} />
-                                            {item.name} - {item.asset_tag} - {item.assigned_to?.name} (ID: {item.id})
-                                        </label>
-                                    </li>
-                                ))}
-                            </ul>
-
-                            <div className="modal-actions">
-                                <button type="button" className="btn-annuler" onClick={annulerValidation}>Annuler</button>
-                                <button type="submit" className="btn-submit">Créer ticket</button>
-                            </div>
-                        </div>
-                    </form>
+            {isModalAnnulation && (
+                <div>
+                    <input type="date" onChange={(e) => setDateModal(e.target.value)} />
+                    <input type="text" onChange={(e) => setDescriptionModal(e.target.value)} placeholder="Description" />
+                    <button onClick={confirmerAnnulation}>Confirmer</button>
                 </div>
             )}
         </div>
     )
 }
+
 export default ListeTicket
