@@ -32,7 +32,6 @@ function ListeTicket() {
             setTicketCout(response.data.data)
         } catch (e) {
             setMessage(`Erreur : ${e.response?.data?.error || e.message}`)
-            console.log(ticketCout)
         }
     }
 
@@ -58,16 +57,18 @@ function ListeTicket() {
                 draggedTicket.items.forEach(tag => {
                     const assetTag = typeof tag === 'string' ? tag : tag.asset_tag;
                     const hardwareItem = items.find(i => i.asset_tag === assetTag);
-                    if (hardwareItem && hardwareItem.category && hardwareItem.category.name) {
-                        categoriesArray.push(hardwareItem.category.name);
+                    const catName = hardwareItem?.category?.name || 'Non catégorisé'
+                    if (hardwareItem && hardwareItem.category) {
+                        if (!categoriesArray.includes(catName)) {
+                            categoriesArray.push(catName)
+                        }
                     } else {
-                        categoriesArray.push("Non catégorisé");
+                        categoriesArray.push(catName);
                     }
                 });
             } else {
                 categoriesArray = ["Aucune catégorie"];
             }
-
             setTicket(prev =>
                 prev.map(t =>
                     String(t.id) === draggableId
@@ -93,10 +94,13 @@ function ListeTicket() {
                 draggedTicket.items.forEach(tag => {
                     const assetTag = typeof tag === 'string' ? tag : tag.asset_tag;
                     const hardwareItem = items.find(i => i.asset_tag === assetTag);
-                    if (hardwareItem && hardwareItem.category && hardwareItem.category.name) {
-                        categoriesArray.push(hardwareItem.category.name);
+                    const catName = hardwareItem?.category?.name || 'Non catégorisé'
+                    if (hardwareItem && hardwareItem.category) {
+                        if (!categoriesArray.includes(catName)) {
+                            categoriesArray.push(catName)
+                        }
                     } else {
-                        categoriesArray.push("Non catégorisé");
+                        categoriesArray.push(catName);
                     }
                 });
             } else {
@@ -148,14 +152,7 @@ function ListeTicket() {
                 status_id: pendingDrag.newStatusId
             })
 
-            let dernierPrix = 0
-            for (const cat of category) {
-                const dernierTicket = ticketCout.filter(t => t.categorie === cat)
-                const dernierCategorie = dernierTicket[dernierTicket.length - 1]
-                dernierPrix = dernierCategorie ? Number(dernierCategorie.cout) : 0
-            }
-
-            const cout = dernierPrix + Number(prixReouverture)
+            const cout = Number(prixReouverture)
             await createHistoryEntry(pendingDrag.ticketId, pendingDrag.newStatusId, dateModal, descriptionModal)
             await addTicketCout(pendingDrag.ticketId, cout, category)
         } catch (e) {
@@ -177,17 +174,8 @@ function ListeTicket() {
                 status_id: pendingDrag.newStatusId
             })
 
-            let dernierPrix = 0
-            for (const cat of category) {
-                const dernierCategorie = ticketCout.filter(t => t.categorie === cat)
-                const Prix = dernierCategorie[dernierCategorie.length - 1]
-                dernierPrix = Prix ? Number(Prix.cout) : 0
-            }
-
-            const cout = dernierPrix - dernierPrix
-            console.log(cout)
             await createHistoryEntry(pendingDrag.ticketId, pendingDrag.newStatusId, dateModal, descriptionModal)
-            await addTicketCout(pendingDrag.ticketId, cout, category)
+            await deleteTicketCout(category, pendingDrag.ticketId)
         } catch (e) {
             console.log(e)
         }
@@ -211,36 +199,36 @@ function ListeTicket() {
         setPendingDrag(null)
     }
 
-    const addTicketCout = async (ticketId, montantTotal, categoriesArray) => {
+    const addTicketCout = async (ticketId, montant, categorie) => {
         setLoading(true)
-        let montantDivise = 0
-        try {
-            if (montantTotal === 0) {
-                montantDivise = 0
-            }
-            montantDivise = Number(montantTotal) / categoriesArray.length
-            for (const cat of categoriesArray) {
-                const searchCat = ticketCout.find(
-                    tc => tc.categorie === cat && tc.id_ticket === ticketId
-                )
-                if (!searchCat) {
-                    await api_ticket.post('/ticket_cout', {
-                        id_ticket: ticketId,
-                        cout: montantDivise,
-                        categorie: cat
-                    })
-                } else {
-                    await api_ticket.put(`/ticket_cout/${searchCat.id}`, {
-                        cout: montantDivise
-                    })
-                }
+        const montantDivise = montant / categorie.length
+        for (const cat of categorie) {
+            try {
+                await api_ticket.post('/ticket_cout', {
+                    id_ticket: ticketId,
+                    cout: montantDivise,
+                    categorie: cat
+                })
+                setMessage('Coût ajouté avec succès')
+            } catch (e) {
+                setMessage(`Erreur : ${e.response?.data?.error || e.message}`)
+            } finally {
+                setLoading(false)
             }
             await getTicketCout()
-            setMessage('Coût ajouté avec succès')
+        }
+    }
+
+    const deleteTicketCout = async (categoryArray, ticketId) => {
+        try {
+            for (const c of categoryArray) {
+                const category = ticketCout.filter(tc => tc.categorie === c && tc.id_ticket === ticketId)
+                const dernierLigneCategorie = category[0]
+                await api_ticket.delete(`/ticket_cout/${dernierLigneCategorie.id}`)
+            }
         } catch (e) {
-            setMessage(`Erreur : ${e.response?.data?.error || e.message}`)
-        } finally {
-            setLoading(false)
+            setMessage('Erreur lors supression')
+            console.log(e)
         }
     }
 
@@ -278,7 +266,6 @@ function ListeTicket() {
         } catch (e) {
             setMessage(e)
         } finally {
-            setLoading(false)
         }
     }
 
@@ -286,7 +273,6 @@ function ListeTicket() {
         try {
             const response = await api_ticket.get('/tickets')
             setTicket(response.data.data)
-            setLoading(false)
         } catch (e) {
             console.log(e)
             setMessage('Erreur lors recuperation')
@@ -297,7 +283,6 @@ function ListeTicket() {
         try {
             const response = await api_service.get('/hardware')
             setItems(response.data.rows)
-            setLoading(false)
         } catch (e) {
             console.log(e)
             setMessage('Erreur lors recuperation')
@@ -305,28 +290,35 @@ function ListeTicket() {
     }
 
     const getAllKanbanSetting = async () => {
-        setLoading(true)
         try {
             const response = await api_ticket.get('/kanban_settings')
             setKanbanSettings(response.data.data)
         } catch (e) {
             setMessage(`Erreur : ${e.response?.data?.error || e.message}`)
         } finally {
-            setLoading(false)
         }
     }
 
     useEffect(() => {
         const init = async () => {
-            getAllKanbanSetting()
-            getItems()
-            getTicket()
-            getCouleur()
-            getStatuses()
-            getTicketCout()
+            try {
+                await Promise.all([
+                    getAllKanbanSetting(),
+                    getItems(),
+                    getTicket(),
+                    getCouleur(),
+                    getStatuses(),
+                    getTicketCout()
+                ])
+            } catch (e) {
+                setMessage('Erreur chargement')
+            } finally {
+                setLoading(false)
+            }
         }
         init()
     }, [])
+
 
     if (loading) return (
         <div className="flex justify-center items-center h-screen">
@@ -370,7 +362,7 @@ function ListeTicket() {
                                         ))}
 
                                         {provided.placeholder}
-                                        {s.id === 1 && <button onClick={()=>navigate("/create/tickets")}>Creer ticket</button>}
+                                        {s.id === 1 && <button onClick={() => navigate("/create/tickets")}>Creer ticket</button>}
                                     </div>
                                 )}
                             </Droppable>

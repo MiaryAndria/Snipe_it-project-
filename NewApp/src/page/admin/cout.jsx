@@ -29,12 +29,20 @@ function Cout() {
 
     useEffect(() => {
         const init = async () => {
-            setLoading(true)
-            await Promise.all([getCategorie(), getTicketCouts()])
-            setLoading(false)
+            try {
+                await Promise.all([
+                    getTicketCouts(),
+                    getCategorie()
+                ])
+            } catch (e) {
+                setMessage('Erreur chargement')
+            } finally {
+                setLoading(false)
+            }
         }
         init()
     }, [])
+
 
     if (loading) return (
         <div className="flex justify-center items-center h-screen">
@@ -54,9 +62,9 @@ function Cout() {
                 </thead>
                 <tbody>
                     {categorie.map(c => {
-                        const couts = ticketCout.filter(tc => tc.categorie === c.name)
+                        const ticketcouts = ticketCout.filter(tc => tc.categorie === c.name)
                         let totalCout = 0
-                        for (const tc of couts) {
+                        for (const tc of ticketcouts) {
                             totalCout += Number(tc.cout)
                         }
 

@@ -3,6 +3,9 @@ deux bouttons choix reouverture et annulation
 if(reouverture) misy champ manatsofoka prix reouverture 
 annulation fafana cost dans cout 
 
+manampy table t_priority atao ao ny priority 
+table relation t_priority_asset anaovana fijerena changement priorité
+
 on envoi dans closed et si on envoi dans close on paie et prix se divise par nombre de category et si on fait revenir dans progress
 
 Je développe une application de gestion de tickets avec React, Node.js, SQLite/MySQL et un Kanban (Open, Progress, Closed).

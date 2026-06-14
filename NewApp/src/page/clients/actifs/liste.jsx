@@ -60,18 +60,23 @@ function ListeActif() {
             const response = await api_service.get('/companies')
             setCompagnie(response.data.rows)
         } catch (e) { console.log(e); setMessage('Erreur lors recuperation') }
-    }
-
-    const init = async () => {
-        setLoading(true)
-        await getCategorie()
-        await getStatus()
-        await getCompagnie()
-        await getAsset()
-        setLoading(false)
-    }
-
+    }   
+    
     useEffect(() => {
+        const init = async () => {
+            try {
+                await Promise.all([
+                    getCategorie(),
+                    getStatus(),
+                    getCompagnie(),
+                    getAsset()
+                ])
+            } catch (e) {
+                setMessage('Erreur chargement')
+            } finally {
+                setLoading(false)
+            }
+        }
         init()
     }, [])
 

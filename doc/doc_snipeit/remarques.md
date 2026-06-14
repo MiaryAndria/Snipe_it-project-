@@ -254,6 +254,7 @@ function EditTicket() {
 
 ## recuperer derniere element d'un tableau 
 const dernierElement = tableau[tableau.length - 1]
+mais comme dans base c'est d'ordre desc alors on fait tableau[0]
 comme par exemple             
 recuperer toutes les categories ensuite valeur derniere element dans ce categorie
 for (const cat of category) {
@@ -262,7 +263,6 @@ for (const cat of category) {
                 dernierPrix = dernierCategorie?Number(Prix.cout):0
             }
 
-            # Mémos JS — Erreurs fréquentes
 
 ## 1. Récupérer le dernier élément d'un tableau
 
@@ -272,15 +272,12 @@ const tableau = [
   { id: 2, cout: 25 },
   { id: 3, cout: 50 },
 ]
-
 // Méthode 1 — classique
 const dernier = tableau[tableau.length - 1]  // { id: 3, cout: 50 }
-
 // Méthode 2 — moderne
 const dernier = tableau.at(-1)               // { id: 3, cout: 50 }
-
 // Si tableau vide → dernier = undefined
-```
+``
 
 ---
 
@@ -289,13 +286,11 @@ const dernier = tableau.at(-1)               // { id: 3, cout: 50 }
 ```js
 // FAUX — un tableau vide [] est toujours truthy
 if (tableau) { ... }  // entre même si tableau = []
-
 // CORRECT — tester l'élément lui-même
 const dernier = tableau[tableau.length - 1]
 const valeur = dernier ? Number(dernier.cout) : 0
 //             ↑ undefined si tableau vide → prend 0
 ```
-
 ---
 
 ## 3. const vs let — règle simple
@@ -309,7 +304,6 @@ y = 20        // ✅ OK
 
 // Règle : si tu réassignes plus bas → utilise let
 ```
-
 ---
 
 ## 4. Number() — toujours convertir les inputs
@@ -322,11 +316,9 @@ const prix = "50"  // vient d'un <input>
 100 + Number(prix)  // ✅ 150     (addition)
 100 - Number(prix)  // ✅ 50
 ```
-
 ---
 
 ## 5. Ne jamais laisser catch vide
-
 ```js
 // FAUX — les erreurs disparaissent silencieusement
 try { ... } catch (e) { }
@@ -337,14 +329,12 @@ try { ... } catch (e) {
     setMessage(`Erreur : ${e.message}`)
 }
 ```
-
 ---
 
 ## 6. reduce — sommer les valeurs d'un tableau
 
 ```js
 const couts = [{ cout: 100 }, { cout: 25 }, { cout: 50 }]
-
 // Équivalent à : total = 0 + 100 + 25 + 50
 const total = couts.reduce((total, tc) => total + Number(tc.cout), 0)
 // → 175
@@ -355,8 +345,6 @@ for (const tc of couts) {
     total += Number(tc.cout)
 }
 ```
-
----
 
 ## 7. Promise.all — attendre plusieurs appels API
 
@@ -374,3 +362,17 @@ await Promise.all([
 ])
 setLoading(false)  // ← s'exécute seulement quand tout est chargé
 ```
+
+## filter et find 
+ici on a utiliser filter car on a besoin de recuperer toutes les categories d'abord ensuite prendre le derniere element de ce categorie car ce categorie peut apparaitre plusieurs fois dans ticketCout n'est ce pas mais ici c'est juste pour verifier que ce categorie existe t il deja 
+
+# filter
+const dernierCategorie = ticketCout.filter(t => t.categorie === cat)
+const Prix = dernierCategorie[dernierCategorie.length - 1]
+
+# find
+find retourne un objet direct ou undefined
+
+const searchCat = ticketCout.find(
+tc => tc.categorie === cat && tc.id_ticket === ticketId
+)

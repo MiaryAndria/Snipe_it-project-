@@ -1,0 +1,313 @@
+import sqlite3 from 'sqlite3';
+import mysql from 'mysql2/promise';
+import dotenv from 'dotenv';
+import path from 'path';
+import fs from 'fs';
+
+dotenv.config();
+
+const dbPath = process.env.DB_SQLITE_PATH || './data/database.sqlite';
+const dbDir = path.dirname(dbPath);
+if (!fs.existsSync(dbDir)) {
+  fs.mkdirSync(dbDir, { recursive: true });
+}
+
+const sqliteDb = new sqlite3.Database(dbPath, (err) => {
+  if (err) {
+    console.error('Error opening SQLite database:', err.message);
+  } else {
+    console.log('Connected to SQLite database at', dbPath);
+    initializeSqliteSchema();
+  }
+});
+
+// Promisified helper functions for SQLite queries
+export const sqliteRun = (sql, params = []) => {
+  return new Promise((resolve, reject) => {
+    sqliteDb.run(sql, params, function(err) {
+      if (err) reject(err);
+      else resolve({ lastID: this.lastID, changes: this.changes });
+    });
+  });
+};
+
+export const sqliteAll = (sql, params = []) => {
+  return new Promise((resolve, reject) => {
+    sqliteDb.all(sql, params, (err, rows) => {
+      if (err) reject(err);
+      else resolve(rows);
+    });
+  });
+};
+
+export const sqliteGet = (sql, params = []) => {
+  return new Promise((resolve, reject) => {
+    sqliteDb.get(sql, params, (err, row) => {
+      if (err) reject(err);
+      else resolve(row);
+    });
+  });
+};
+
+// ─────────────────────────────────────────────
+//  Schema Initialization & Auto-Migration
+// ─────────────────────────────────────────────
+async function initializeSqliteSchema() {
+  try {
+    // Case 1: Very old schema (status column directly on tickets)
+    const ticketsInfo = await sqliteAll("PRAGMA table_info(tickets)").catch(() => []);
+    if (ticketsInfo.some(col => col.name === 'status')) {
+      console.log('Migration: very old schema detected (status column on tickets). Full rebuild...');
+      await dropAllTables();
+      await createTables();
+      return;
+    }
+
+    // Case 2: Detect any outdated column structure that needs a partial reset
+    let needReset = false;
+
+    const languagesInfo = await sqliteAll("PRAGMA table_info(languages)").catch(() => []);
+    if (languagesInfo.length > 0 && !languagesInfo.some(col => col.name === 'name')) {
+      needReset = true; // languages.name column missing
+    }
+
+    const kanbanInfo = await sqliteAll("PRAGMA table_info(kanban_settings)").catch(() => []);
+    if (kanbanInfo.length > 0) {
+      const hasObsoleteColumns =
+        kanbanInfo.some(col => col.name === 'name')           ||  // old text name column
+        kanbanInfo.some(col => col.name === 'language_code')  ||  // old string language column
+        kanbanInfo.some(col => col.name === 'language_code_id') || // superseded by color_hex
+        kanbanInfo.some(col => col.name === 'color_id');           // replaced by color_hex
+      if (hasObsoleteColumns) needReset = true;
+    }
+
+    // Check kanban_status_name table exists (rename from status_name)
+    const statusNameInfo = await sqliteAll("PRAGMA table_info(status_name)").catch(() => []);
+    if (statusNameInfo.length > 0) needReset = true; // old table name still present
+
+    if (needReset) {
+      console.log('Migration: outdated schema detected. Dropping and recreating affected tables...');
+      await sqliteRun("DROP TABLE IF EXISTS kanban_settings");
+      await sqliteRun("DROP TABLE IF EXISTS kanban_status_name");
+      await sqliteRun("DROP TABLE IF EXISTS status_name");
+      await sqliteRun("DROP TABLE IF EXISTS kanban_colors");
+      await sqliteRun("DROP TABLE IF EXISTS languages");
+    }
+
+    await createTables();
+  } catch (error) {
+    console.error('Error during SQLite schema check/migration:', error.message);
+  }
+}
+
+// Full drop (for complete rebuilds only)
+async function dropAllTables() {
+  await sqliteRun("DROP TABLE IF EXISTS ticket_price");
+  await sqliteRun("DROP TABLE IF EXISTS ticket_assets");
+  await sqliteRun("DROP TABLE IF EXISTS ticket_statuses");
+  await sqliteRun("DROP TABLE IF EXISTS ticket_priorities");
+  await sqliteRun("DROP TABLE IF EXISTS tickets");
+  await sqliteRun("DROP TABLE IF EXISTS statuses");
+  await sqliteRun("DROP TABLE IF EXISTS priorities");
+  await sqliteRun("DROP TABLE IF EXISTS kanban_settings");
+  await sqliteRun("DROP TABLE IF EXISTS kanban_status_name");
+  await sqliteRun("DROP TABLE IF EXISTS status_name");
+  await sqliteRun("DROP TABLE IF EXISTS kanban_colors");
+  await sqliteRun("DROP TABLE IF EXISTS languages");
+}
+
+// ─────────────────────────────────────────────
+//  Table Creation & Seed Data
+// ─────────────────────────────────────────────
+async function createTables() {
+  // 1. Statuses (canonical English status names)
+  await sqliteRun(`
+    CREATE TABLE IF NOT EXISTS statuses (
+      id   INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT UNIQUE
+    )
+  `);
+  for (const name of ['New', 'In Progress', 'Closed']) {
+    await sqliteRun("INSERT OR IGNORE INTO statuses (name) VALUES (?)", [name]);
+  }
+
+  // 2. Priorities
+  await sqliteRun(`
+    CREATE TABLE IF NOT EXISTS priorities (
+      id   INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT UNIQUE
+    )
+  `);
+  for (const name of ['Low', 'Medium', 'High']) {
+    await sqliteRun("INSERT OR IGNORE INTO priorities (name) VALUES (?)", [name]);
+  }
+
+  // 3. Tickets (core info only — status & priority live in history tables)
+  await sqliteRun(`
+    CREATE TABLE IF NOT EXISTS tickets (
+      id         INTEGER PRIMARY KEY AUTOINCREMENT,
+      num_ticket INTEGER UNIQUE,
+      date       TEXT,
+      time       TEXT,
+      title      TEXT,
+      description TEXT
+    )
+  `);
+
+  // 4. Ticket Status History
+  await sqliteRun(`
+    CREATE TABLE IF NOT EXISTS ticket_statuses (
+      id        INTEGER PRIMARY KEY AUTOINCREMENT,
+      ticket_id INTEGER,
+      status_id INTEGER,
+      date      TEXT,
+      time      TEXT,
+      comment   TEXT,
+      FOREIGN KEY (ticket_id) REFERENCES tickets(id) ON DELETE CASCADE,
+      FOREIGN KEY (status_id) REFERENCES statuses(id)
+    )
+  `);
+  // Backward-compat: add comment column if missing (existing deployments)
+  const tsColumns = await sqliteAll("PRAGMA table_info(ticket_statuses)").catch(() => []);
+  if (tsColumns.length > 0 && !tsColumns.some(c => c.name === 'comment')) {
+    await sqliteRun("ALTER TABLE ticket_statuses ADD COLUMN comment TEXT");
+  }
+
+  // 5. Ticket Priority History
+  await sqliteRun(`
+    CREATE TABLE IF NOT EXISTS ticket_priorities (
+      id          INTEGER PRIMARY KEY AUTOINCREMENT,
+      ticket_id   INTEGER,
+      priority_id INTEGER,
+      date        TEXT,
+      time        TEXT,
+      FOREIGN KEY (ticket_id)   REFERENCES tickets(id)    ON DELETE CASCADE,
+      FOREIGN KEY (priority_id) REFERENCES priorities(id)
+    )
+  `);
+
+  // 6. Ticket ↔ Asset association
+  await sqliteRun(`
+    CREATE TABLE IF NOT EXISTS ticket_assets (
+      ticket_id INTEGER,
+      asset_tag TEXT,
+      PRIMARY KEY (ticket_id, asset_tag),
+      FOREIGN KEY (ticket_id) REFERENCES tickets(id) ON DELETE CASCADE
+    )
+  `);
+
+  // 7. Languages (code + display name)
+  await sqliteRun(`
+    CREATE TABLE IF NOT EXISTS languages (
+      id   INTEGER PRIMARY KEY AUTOINCREMENT,
+      code TEXT UNIQUE,
+      name TEXT
+    )
+  `);
+  for (const lang of [
+    { code: 'en', name: 'English' },
+    { code: 'fr', name: 'Français' },
+    { code: 'mg', name: 'Malgache' }
+  ]) {
+    await sqliteRun("INSERT OR IGNORE INTO languages (code, name) VALUES (?, ?)", [lang.code, lang.name]);
+  }
+
+  // 8. Kanban Settings
+  //    color_hex : inline hex value (no join needed)
+  //    No language_code_id here — language is set per-translation in kanban_status_name
+  await sqliteRun(`
+    CREATE TABLE IF NOT EXISTS kanban_settings (
+      id        INTEGER PRIMARY KEY AUTOINCREMENT,
+      status_id INTEGER UNIQUE,
+      color_hex TEXT,
+      FOREIGN KEY (status_id) REFERENCES statuses(id)
+    )
+  `);
+  for (const row of [
+    { status: 'New',         color: '#1e293b' },
+    { status: 'In Progress', color: '#2c1d11' },
+    { status: 'Closed',      color: '#122416' }
+  ]) {
+    await sqliteRun(`
+      INSERT OR IGNORE INTO kanban_settings (status_id, color_hex)
+      SELECT id, ? FROM statuses WHERE name = ?
+    `, [row.color, row.status]);
+  }
+
+  // 9. Kanban Status Names (localized status labels, one per status+language)
+  await sqliteRun(`
+    CREATE TABLE IF NOT EXISTS kanban_status_name (
+      id          INTEGER PRIMARY KEY AUTOINCREMENT,
+      status_id   INTEGER,
+      name        TEXT,
+      language_id INTEGER,
+      FOREIGN KEY (status_id)   REFERENCES statuses(id),
+      FOREIGN KEY (language_id) REFERENCES languages(id),
+      UNIQUE(status_id, language_id)
+    )
+  `);
+  // Seed: Malagasy (mg)
+  for (const row of [
+    { status: 'New',         name: 'vaovao'    },
+    { status: 'In Progress', name: 'efa manao' },
+    { status: 'Closed',      name: 'vita'      }
+  ]) {
+    await sqliteRun(`
+      INSERT OR IGNORE INTO kanban_status_name (status_id, name, language_id)
+      SELECT s.id, ?, l.id FROM statuses s, languages l
+      WHERE s.name = ? AND l.code = 'mg'
+    `, [row.name, row.status]);
+  }
+  // Seed: French (fr)
+  for (const row of [
+    { status: 'New',         name: 'Nouveau'  },
+    { status: 'In Progress', name: 'En cours' },
+    { status: 'Closed',      name: 'Fermé'    }
+  ]) {
+    await sqliteRun(`
+      INSERT OR IGNORE INTO kanban_status_name (status_id, name, language_id)
+      SELECT s.id, ?, l.id FROM statuses s, languages l
+      WHERE s.name = ? AND l.code = 'fr'
+    `, [row.name, row.status]);
+  }
+
+  // 10. Prix des tickets par asset (une ligne par asset du ticket fermé)
+  await sqliteRun(`
+    CREATE TABLE IF NOT EXISTS ticket_price (
+      id          INTEGER PRIMARY KEY AUTOINCREMENT,
+      ticket_id   INTEGER NOT NULL,
+      asset_tag   TEXT    NOT NULL,
+      price       REAL    NOT NULL DEFAULT 0,
+      catalogue   TEXT    DEFAULT NULL,
+      FOREIGN KEY (ticket_id) REFERENCES tickets(id) ON DELETE CASCADE
+    )
+  `);
+  // Migration : ajouter colonne catalogue si absente (bases existantes)
+  const tpColumns = await sqliteAll("PRAGMA table_info(ticket_price)").catch(() => []);
+  if (tpColumns.length > 0 && !tpColumns.some(c => c.name === 'catalogue')) {
+    await sqliteRun("ALTER TABLE ticket_price ADD COLUMN catalogue TEXT DEFAULT NULL");
+    console.log('[db] Migration: ticket_price.catalogue column added.');
+  }
+}
+
+// ─────────────────────────────────────────────
+//  MySQL (Snipe-IT)
+// ─────────────────────────────────────────────
+let mysqlPool = null;
+try {
+  mysqlPool = mysql.createPool({
+    host:             process.env.DB_MYSQL_HOST     || '127.0.0.1',
+    port:             parseInt(process.env.DB_MYSQL_PORT || '3306', 10),
+    user:             process.env.DB_MYSQL_USER     || 'snipeit',
+    password:         process.env.DB_MYSQL_PASSWORD || '123',
+    database:         process.env.DB_MYSQL_DATABASE || 'snipeit',
+    waitForConnections: true,
+    connectionLimit:  10,
+    queueLimit:       0
+  });
+  console.log('MySQL connection pool created for Snipe-IT.');
+} catch (error) {
+  console.error('Failed to initialize MySQL pool:', error.message);
+}
+
+export { sqliteDb, mysqlPool };

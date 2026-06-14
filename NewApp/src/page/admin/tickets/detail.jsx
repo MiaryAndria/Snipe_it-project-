@@ -23,7 +23,9 @@ function DetailTicket() {
     console.log(tickets)
 
     useEffect(() => {
+        setLoading(true)
         getTickets()
+        setLoading(false)
     }, [])
 
     if (loading) return (

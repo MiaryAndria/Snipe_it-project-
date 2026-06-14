@@ -5,7 +5,6 @@ import '../../../styles/global.css'
 
 function ListeTickets() {
     const [tickets, setTickets] = useState([])
-    const [total, setTotal] = useState(0)
     const [loading, setLoading] = useState(true)
     const [message, setMessage] = useState('')
     const navigate = useNavigate()
@@ -23,7 +22,9 @@ function ListeTickets() {
     }
 
     useEffect(() => {
+        setLoading(true)
         getTickets()
+        setLoading(false)
     }, [])
 
     if (loading) return (

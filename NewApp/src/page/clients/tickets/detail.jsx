@@ -18,7 +18,11 @@ function DetailTicket() {
 
     console.log(ticketDetail)
 
-    useEffect(() => { getDetailTicket() }, [])
+    useEffect(() => { 
+        setLoading(true)
+        getDetailTicket() 
+        setLoading(false)
+    }, [])
 
     if (loading) return (
         <div className="flex justify-center items-center h-screen">

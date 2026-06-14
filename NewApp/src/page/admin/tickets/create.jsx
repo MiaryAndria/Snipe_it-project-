@@ -97,7 +97,6 @@ function InsertTickets() {
                 priority_id: selectedPriority,
                 items: component
             })
-            console.log(response.data)
             const ticketId = response.data.data.id
             await createHistoryEntry(ticketId, status)
 
