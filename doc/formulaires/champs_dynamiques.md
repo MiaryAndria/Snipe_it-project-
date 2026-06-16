@@ -264,3 +264,16 @@ Avec nextId (qui était à 4) → id: 4 → Toujours unique ✅
 ```
 
 `nextId` ne fait que monter, jamais descendre. C'est un **compteur qui ne recule pas**.
+
+## Repeter champ avec valeur differente 
+
+    <div className="form-group" style={{ marginLeft: '24px' }}>
+        <label className="form-label">Champ a repeter</label>
+        <input
+            className="field-input"
+            type="text"
+            value={label[id] || ''}        
+            onChange={(e) => handleText(id, e.target.value)}
+            placeholder="Ex : En cours, À faire..."
+        />
+    </div>

@@ -1,0 +1,12 @@
+Import csv 
+ticket 
+mvt 
+valeur 
+
+open : reouverture 
+closed : fermer
+
+ex : ticket_2 , closed , 100 
+ticket_2 , open , 40 
+
+rehefa mijery page chiffre dia mahita detail item afaka cliquerna dia manapotra detail 

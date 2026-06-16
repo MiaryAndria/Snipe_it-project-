@@ -1,50 +1,3 @@
-afaka averina ao amn'progress
-deux bouttons choix reouverture et annulation
-if(reouverture) misy champ manatsofoka prix reouverture 
-annulation fafana cost dans cout 
-
-manampy table t_priority atao ao ny priority 
-table relation t_priority_asset anaovana fijerena changement priorité
-
-on envoi dans closed et si on envoi dans close on paie et prix se divise par nombre de category et si on fait revenir dans progress
-
-Je développe une application de gestion de tickets avec React, Node.js, SQLite/MySQL et un Kanban (Open, Progress, Closed).
-
-Fonctionnalités déjà présentes :
-
-* Création et modification de tickets.
-* Gestion des coûts (ticket_cout).
-* Plusieurs catégories par ticket.
-* Répartition automatique du coût entre les catégories.
-* Changement de statut via Kanban.
-* Statuts Open, Progress et Closed.
-* Historique des actions.
-* Validation des données.
-* API REST.
-
-Je veux que tu joues le rôle d'un client ou d'un chef de projet qui ajoute des demandes imprévues pendant le développement.
-
-Génère 20 scénarios réalistes d'évolution fonctionnelle, bugs métier, changements de règles ou cas limites qui pourraient m'obliger à modifier mon code.
-
-Les scénarios doivent être du même type que :
-
-* Réouverture d'un ticket Closed avec coût supplémentaire.
-* Annulation d'un ticket et suppression des coûts associés.
-* Retour d'un ticket de Closed vers Progress.
-* Modification du mode de calcul des coûts.
-* Gestion des catégories supprimées.
-* Validation supplémentaire lors des changements de statut.
-
-Pour chaque scénario, indique :
-
-1. La demande du client.
-2. Le problème technique que cela pose.
-3. Les parties du code susceptibles d'être impactées.
-4. Le niveau de difficulté (Facile, Moyen, Difficile).
-
-Les scénarios doivent être concrets, réalistes et suffisamment détaillés pour servir d'exercices de développement.
-
-
 C'est une excellente idée ! Pratiquer est la meilleure façon d'apprendre à bien manipuler une base de données.
 
 Puisque vous travaillez sur un système de tickets (avec Kanban, historiques, coûts, etc.), je vous propose 3 petits exercices progressifs (du plus simple au un peu plus complexe). Choisissez celui qui vous tente le plus !
@@ -81,3 +34,7 @@ Créez une route GET /reports/top-costs.
 Vous devez écrire une requête SQL utilisant JOIN et GROUP BY pour additionner (SUM(cout)) tous les coûts liés à un même ticket.
 La requête doit trier les résultats du plus cher au moins cher (ORDER BY ... DESC), et n'en garder que 5 (LIMIT 5).
 Ce que ça vous apprend : Les jointures (LEFT JOIN / INNER JOIN), les fonctions d'agrégation mathématiques (SUM), le groupement (GROUP BY), et le tri.
+
+Comment voulez-vous procéder ? Choisissez-en un (le 1, le 2 ou le 3). Essayez de commencer à l'écrire dans votre code, et si vous bloquez sur la commande SQL ou la route Express, copiez/collez moi votre essai et on le corrigera ensemble !
+
+4:16 PM

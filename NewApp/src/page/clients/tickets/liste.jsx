@@ -219,6 +219,7 @@ function ListeTicket() {
         }
     }
 
+
     const deleteTicketCout = async (categoryArray, ticketId) => {
         try {
             for (const c of categoryArray) {

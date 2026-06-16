@@ -17,7 +17,6 @@ function ListeTickets() {
             setLoading(false)
         } catch (e) {
             console.log(e)
-            setMessage('Erreur lors recuperation')
         }
     }
 
@@ -62,7 +61,6 @@ function ListeTickets() {
                     </tbody>
                 </table>
             </div>
-            <p className="msg">{message}</p>
         </div>
     )
 }

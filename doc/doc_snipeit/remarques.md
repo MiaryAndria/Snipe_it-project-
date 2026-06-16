@@ -193,6 +193,10 @@ et aussi pour eviter les doublons
         }
     }
 
+    const handleOnChange = (id,value)=>{
+        setValeur(prev=>({...prev,[id]:value}))
+    }
+
 
 # si juste on veut stocker une valeur là on prend juste le tableau selectedItems ici et valeur à rajouter 
         const handleOnChange =(e)=>{
@@ -373,6 +377,14 @@ const Prix = dernierCategorie[dernierCategorie.length - 1]
 # find
 find retourne un objet direct ou undefined
 
-const searchCat = ticketCout.find(
-tc => tc.categorie === cat && tc.id_ticket === ticketId
-)
+        const searchCat = ticketCout.find(
+        tc => tc.categorie === cat && tc.id_ticket === ticketId
+        )
+
+# compter occurence 
+           const counts = {};
+            for (const cat of categories) {
+                counts[cat] = (counts[cat] || 0) + 1;
+            }
+            
+
