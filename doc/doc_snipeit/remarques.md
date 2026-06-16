@@ -387,4 +387,24 @@ find retourne un objet direct ou undefined
                 counts[cat] = (counts[cat] || 0) + 1;
             }
             
+# requete
+await updateStatus(ticketIdStr, 3);si on veut juste changer status 
+si on veut changer status et autre chose 
 
+await updateStatus(ticketIdStr,{status_id : 3 , cout : 100}) là on modifie à la fois status et cout depend juste bdd 
+# il faut creer une fonction reutilisable dans n'importe quel partie du code comme par exemple une fonction insert avec argument (a,b,c)
+
+InsertCategorie (a,b,c){
+
+}
+
+qui pourrait etre utiliser meme dans interface avec setA(e.target.value) avec boutton creer categorie 
+CreateCategorie (A,B,C)
+
+ou aussi dans fonction importCategorie (){
+    argument_1 = row.value
+    argument_2 = row.value
+    argument_3 = row.value
+
+    await createCategorie(argument_1,argument_2,argument_3)
+}

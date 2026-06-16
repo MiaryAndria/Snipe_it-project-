@@ -23,8 +23,127 @@ function ListeTicket() {
     const [prixReouverture, setPrixReouverture] = useState('')
     const [ticketCout, setTicketCout] = useState([])
     const [dateModal, setDateModal] = useState('')
+    const [csvData,setCsvData] = useState([])
     const [descriptionModal, setDescriptionModal] = useState('')
     const navigate = useNavigate()
+
+    const handleImport = async () => {
+        if(csvData.length ===0){
+            return
+        }
+        setLoading(true);
+        try {
+            for (const ligne of csvData) {
+                const ticketIdStr = ligne.ticket.replace('ticket_', '').trim();
+                const mvt = ligne.mvt.trim();
+                const valeur = Number(ligne.valeur);
+                
+                const currentTicket = ticket.find(t => String(t.id) === ticketIdStr);
+                if (!currentTicket) continue;
+
+                const categoriesArray = getTicketCategories(currentTicket);
+                const date = new Date().toISOString().split('T')[0];
+                const description = 'Description fotsiny'
+
+                if (mvt === 'closed' || 'close') {
+                    const status= 3;
+                    await updateStatus(ticketIdStr,status)
+                    await addTicketCout(ticketIdStr,valeur,categoriesArray)
+                    await createHistoryEntry(ticketIdStr,status,date,description)
+                } 
+
+                else if (mvt === 'open') {
+                    const status = 2;
+                    await updateStatus(ticketIdStr,status)
+                    await addTicketCout(ticketIdStr,valeur,categoriesArray)
+                    await createHistoryEntry(ticketIdStr,status,date,description)
+
+                }
+
+                else if(mvt === 'cancel'){
+                    const status = 2 
+                    await updateStatus(ticketIdStr,status)
+                    await deleteTicketCout(categoriesArray,ticketIdStr)
+                    await createHistoryEntry(ticketIdStr,status,date,description)
+                }
+
+                else if(mvt ==='in progress' ||'in_progress'){
+                    const status = 2 
+                    await updateStatus(ticketIdStr,status)
+                    await createHistoryEntry(ticketIdStr,status,date,description)
+                }
+
+                else if (mvt ==='new'){
+                    const status = 1
+                    await updateStatus(ticketIdStr,status)
+                    await createHistoryEntry(ticketIdStr,status,date,description)
+                }
+            }
+            setMessage("Importation CSV réussie !");
+        } catch (error) {
+            console.error(error);
+            setMessage("Erreur lors de l'importation");
+        } finally {
+            await getTicket();
+            await getTicketCout();
+            setLoading(false);
+        }
+    };
+
+    const handleFileChange = (e) => {
+        const fichier = e.target.files[0];
+        if (!fichier) return;
+
+        const reader = new FileReader();
+        reader.onload = function(event) {
+            const texte = event.target.result;
+            const lignes = texte.split('\n');
+            const donneesFormatees = [];
+
+            lignes.forEach(ligne => {
+                if (ligne.trim() !== "") {
+                    const colonnes = ligne.split(',');
+                    if (colonnes.length >= 3) {
+                        donneesFormatees.push({
+                            ticket: colonnes[0].trim(),  
+                            mvt: colonnes[1].trim(),     
+                            valeur: colonnes[2].trim()   
+                        });
+                    }
+                }
+            });
+
+            setCsvData(donneesFormatees);
+        };
+        reader.readAsText(fichier);
+    };
+
+    const createHistoryEntry = async (ticketId, statusId, date, description) => {
+        setLoading(true)
+        try {
+            await api_ticket.post('/ticket_history', {
+                id_ticket: ticketId,
+                id_statuses: statusId,
+                date: date ? date.toString() : new Date().toISOString().split('T')[0],
+                description: description || "Aucune description"
+            })
+            setMessage('Historique ajouté')
+        } catch (e) {
+            setMessage(`Erreur : ${e.response?.data?.error || e.message}`)
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    const updateStatus = async (TicketId, nouveuStatusId) => {
+        try {
+            await api_ticket.put(`/tickets/${TicketId}`, {
+                status_id: nouveuStatusId
+            })
+        } catch (e) {
+            console.log(e)
+        }
+    }
 
     const getTicketCout = async () => {
         try {
@@ -35,40 +154,47 @@ function ListeTicket() {
         }
     }
 
+    const getTicketCategories = (currentTicket) => {
+        let categoriesArray = [];
+        if (currentTicket && currentTicket.items && currentTicket.items.length > 0) {
+            currentTicket.items.forEach(tag => {
+                const assetTag = typeof tag === 'string' ? tag : tag.asset_tag;
+                const hardwareItem = items.find(i => i.asset_tag === assetTag);
+                const catName = hardwareItem?.category?.name || 'Non catégorisé';
+
+                if (hardwareItem && hardwareItem.category) {
+                    if (!categoriesArray.includes(catName)) {
+                        categoriesArray.push(catName);
+                    }
+                } else {
+                    if (!categoriesArray.includes(catName)) {
+                        categoriesArray.push(catName);
+                    }
+                }
+            });
+        } else {
+            categoriesArray = ["Aucune catégorie"];
+        }
+
+        return categoriesArray;
+    };
+
     const onDrag = async (result) => {
         const { destination, source, draggableId } = result
         if (!destination) return
         if (destination.droppableId == source.droppableId && destination.index == source.index) return
         const newStatusId = parseInt(destination.droppableId)
-        const statusDestination = statuses.find(s => s.id === newStatusId)
+        const draggedTicket = ticket.find(t=>String(t.id) === draggableId )
 
         if (parseInt(destination.droppableId) === 3) {
             const description = window.prompt(`Entrer description`)
             if (!description) return
-
             const date = window.prompt(`Entrez la date du déplacement (ex: 2026-06-11)`)
             if (!date) return
             const cout = window.prompt('Inserer cout pour avoir terminer')
             if (cout === null) return
 
-            let categoriesArray = []
-            const draggedTicket = ticket.find(t => String(t.id) === draggableId);
-            if (draggedTicket && draggedTicket.items && draggedTicket.items.length > 0) {
-                draggedTicket.items.forEach(tag => {
-                    const assetTag = typeof tag === 'string' ? tag : tag.asset_tag;
-                    const hardwareItem = items.find(i => i.asset_tag === assetTag);
-                    const catName = hardwareItem?.category?.name || 'Non catégorisé'
-                    if (hardwareItem && hardwareItem.category) {
-                        if (!categoriesArray.includes(catName)) {
-                            categoriesArray.push(catName)
-                        }
-                    } else {
-                        categoriesArray.push(catName);
-                    }
-                });
-            } else {
-                categoriesArray = ["Aucune catégorie"];
-            }
+            const categoriesArray = getTicketCategories(draggedTicket)
             setTicket(prev =>
                 prev.map(t =>
                     String(t.id) === draggableId
@@ -77,9 +203,7 @@ function ListeTicket() {
                 )
             )
             try {
-                await api_ticket.put(`/tickets/${draggableId}`, {
-                    status_id: newStatusId
-                })
+                await updateStatus(draggableId, newStatusId)
                 await createHistoryEntry(draggableId, newStatusId, date, description)
                 await addTicketCout(draggableId, cout, categoriesArray)
             } catch (e) {
@@ -88,25 +212,7 @@ function ListeTicket() {
             }
 
         } else if (parseInt(destination.droppableId) === 2) {
-            let categoriesArray = [];
-            const draggedTicket = ticket.find(t => String(t.id) === draggableId);
-            if (draggedTicket && draggedTicket.items && draggedTicket.items.length > 0) {
-                draggedTicket.items.forEach(tag => {
-                    const assetTag = typeof tag === 'string' ? tag : tag.asset_tag;
-                    const hardwareItem = items.find(i => i.asset_tag === assetTag);
-                    const catName = hardwareItem?.category?.name || 'Non catégorisé'
-                    if (hardwareItem && hardwareItem.category) {
-                        if (!categoriesArray.includes(catName)) {
-                            categoriesArray.push(catName)
-                        }
-                    } else {
-                        categoriesArray.push(catName);
-                    }
-                });
-            } else {
-                categoriesArray = ["Aucune catégorie"];
-            }
-
+            const categoriesArray = getTicketCategories(draggedTicket)
             const ticketId = parseInt(draggableId)
             const newStatusId = parseInt(destination.droppableId)
             setPendingDrag({ ticketId, newStatusId })
@@ -117,7 +223,7 @@ function ListeTicket() {
             const date = window.prompt(`Entrez la date du déplacement (ex: 2026-06-11)`)
             if (!date) return
 
-            const description = window.prompt(`Entrez une description pour ce déplacement vers "${statusDestination?.label || statusDestination?.id}"`)
+            const description = window.prompt(`Entrez une description pour ce déplacement `)
             if (description === null) return
 
             setTicket(prev =>
@@ -128,9 +234,7 @@ function ListeTicket() {
                 )
             )
             try {
-                await api_ticket.put(`/tickets/${draggableId}`, {
-                    status_id: newStatusId
-                })
+                await updateStatus(draggableId, newStatusId)
                 await createHistoryEntry(draggableId, newStatusId, date, description)
             } catch (e) {
                 console.log(e)
@@ -148,10 +252,7 @@ function ListeTicket() {
                         : t
                 )
             )
-            await api_ticket.put(`/tickets/${pendingDrag.ticketId}`, {
-                status_id: pendingDrag.newStatusId
-            })
-
+            await updateStatus(pendingDrag.ticketId, pendingDrag.newStatusId)
             const cout = Number(prixReouverture)
             await createHistoryEntry(pendingDrag.ticketId, pendingDrag.newStatusId, dateModal, descriptionModal)
             await addTicketCout(pendingDrag.ticketId, cout, category)
@@ -170,10 +271,8 @@ function ListeTicket() {
                         : t
                 )
             )
-            await api_ticket.put(`/tickets/${pendingDrag.ticketId}`, {
-                status_id: pendingDrag.newStatusId
-            })
 
+            await updateStatus(pendingDrag.ticketId, pendingDrag.newStatusId)
             await createHistoryEntry(pendingDrag.ticketId, pendingDrag.newStatusId, dateModal, descriptionModal)
             await deleteTicketCout(category, pendingDrag.ticketId)
         } catch (e) {
@@ -230,23 +329,6 @@ function ListeTicket() {
         } catch (e) {
             setMessage('Erreur lors supression')
             console.log(e)
-        }
-    }
-
-    const createHistoryEntry = async (ticketId, statusId, date, description) => {
-        setLoading(true)
-        try {
-            await api_ticket.post('/ticket_history', {
-                id_ticket: ticketId,
-                id_statuses: statusId,
-                date: date ? date.toString() : new Date().toISOString().split('T')[0],
-                description: description || "Aucune description"
-            })
-            setMessage('Historique ajouté')
-        } catch (e) {
-            setMessage(`Erreur : ${e.response?.data?.error || e.message}`)
-        } finally {
-            setLoading(false)
         }
     }
 
@@ -374,7 +456,7 @@ function ListeTicket() {
 
             {isModalProcess && (
                 <div>
-                    <p>Choisissez action que vous voulez faire</p>
+                    <p>Choisissez mvt que vous voulez faire</p>
                     <button onClick={handleModalReouverture}>Reouverture</button>
                     <button onClick={handleModalAnnulation}>Annulation</button>
                     <button onClick={annuler}>Annuler</button>
@@ -397,6 +479,8 @@ function ListeTicket() {
                     <button onClick={confirmerAnnulation}>Confirmer</button>
                 </div>
             )}
+            <input type="file" accept=".csv" onChange={handleFileChange} />
+            <button onClick={handleImport}>Importer</button>
         </div>
     )
 }

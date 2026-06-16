@@ -31,7 +31,7 @@ function App() {
           <Route path="/ticket/fiche/:id" element={<DetailTicket />} />
           <Route path="/admin/custom" element={<CustomParams />} />
           <Route path="/admin/cout" element={<Cout />} />
-          <Route path="/import/ticket" element={<ImportTicket />} />
+          {/* <Route path="/import/ticket" element={<ImportTicket />} /> */}
         </Routes>
       </main>
     </div>
